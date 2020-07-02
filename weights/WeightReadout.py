@@ -15,7 +15,7 @@ readoutnames.append('XeAe' + ending)
 
 def computePopVector(popArray):
     size = len(popArray)
-    complex_unit_roots = np.array([np.exp(1j*(2*np.pi/size)*cur_pos) for cur_pos in xrange(size)])
+    complex_unit_roots = np.array([np.exp(1j*(2*np.pi/size)*cur_pos) for cur_pos in range(size)])
     cur_pos = (np.angle(np.sum(popArray * complex_unit_roots)) % (2*np.pi)) / (2*np.pi)
     return cur_pos
 
@@ -27,8 +27,8 @@ def get_2d_input_weights():
     num_values_row = num_values_col
     rearranged_weights = np.zeros((num_values_col, num_values_row))
         
-    for i in xrange(n_e_sqrt):
-        for j in xrange(n_e_sqrt):
+    for i in range(n_e_sqrt):
+        for j in range(n_e_sqrt):
                 rearranged_weights[i*n_in_sqrt : (i+1)*n_in_sqrt, j*n_in_sqrt : (j+1)*n_in_sqrt] = \
                     weight_matrix[:, i + j*n_e_sqrt].reshape((n_in_sqrt, n_in_sqrt))
     return rearranged_weights
@@ -70,7 +70,7 @@ for name in readoutnames:
             value_arr[src, tgt] += value
     if (name == 'YeAe' + ending):
         values = np.asarray(value_arr)#.transpose()
-    for i in xrange(n_e):
+    for i in range(n_e):
             print(values[i,i])
     else:
         values = np.asarray(value_arr)
@@ -82,7 +82,7 @@ for name in readoutnames:
 # #         if name == 'A_H_E_E' or  name == 'B_H_E_E' or  name == 'C_H_E_E':
 # #             popVecs = np.zeros(n_e)
 # #             tempValues = np.nan_to_num(values)
-# #             for x in xrange(n_e):
+# #             for x in range(n_e):
 # #                 popVecs[x] = computePopVector(tempValues[:nEH,x].transpose())
 # #             argSortPopVecs = np.argsort(popVecs, axis = 0)
 # #             tempValues = np.asarray([values[:,i] for i in argSortPopVecs])

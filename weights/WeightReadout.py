@@ -63,7 +63,7 @@ for name in readoutnames:
     for conn in connection_parameters: 
     #                     print(conn)
         # don't need to pass offset as arg, now we store the parent projection
-        src, tgt, value = conn
+        src, tgt, value = int(conn[0]), int(conn[1]), conn[2]
         if np.isnan(value_arr[src, tgt]):
             value_arr[src, tgt] = value
         else:

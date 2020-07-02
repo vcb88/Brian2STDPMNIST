@@ -59,9 +59,9 @@ for name in readoutnames:
     else:
         value_arr = np.nan * np.ones((n_e, n_e))
     connection_parameters = readout
-    #                 print connection_parameters
+    #                 print(connection_parameters)
     for conn in connection_parameters: 
-    #                     print conn
+    #                     print(conn)
         # don't need to pass offset as arg, now we store the parent projection
         src, tgt, value = conn
         if np.isnan(value_arr[src, tgt]):
@@ -70,8 +70,8 @@ for name in readoutnames:
             value_arr[src, tgt] += value
     if (name == 'YeAe' + ending):
         values = np.asarray(value_arr)#.transpose()
-	for i in xrange(n_e):
-            print values[i,i]
+    for i in xrange(n_e):
+            print(values[i,i])
     else:
         values = np.asarray(value_arr)
         
@@ -86,7 +86,7 @@ for name in readoutnames:
 # #                 popVecs[x] = computePopVector(tempValues[:nEH,x].transpose())
 # #             argSortPopVecs = np.argsort(popVecs, axis = 0)
 # #             tempValues = np.asarray([values[:,i] for i in argSortPopVecs])
-# # #             print popVecs, argSortPopVecs, np.shape(tempValues), np.shape(values)
+# # #             print(popVecs, argSortPopVecs, np.shape(tempValues), np.shape(values))
 # #             im = imshow(tempValues[:n_e, :n_e], interpolation="nearest", cmap=cm.get_cmap(my_cmap))  # copper_r   autumn_r  Greys  my_cmap  gist_rainbow
 # #         else:
 #         im = imshow(values[:n_e, :n_e], interpolation="nearest", cmap=cm.get_cmap(my_cmap))  # copper_r   autumn_r  Greys  my_cmap  gist_rainbow
@@ -169,6 +169,6 @@ savefig(str(fi.number))
 
 
 
-print 'done'
+print('done')
 
 show()

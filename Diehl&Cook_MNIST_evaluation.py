@@ -9,12 +9,12 @@ import matplotlib
 import matplotlib.cm as cmap
 import time
 import os.path
+import os
 import scipy 
 from struct import unpack
 from tqdm import tqdm
 from brian2 import *
 import pickle
-
 
 #------------------------------------------------------------------------------ 
 # functions

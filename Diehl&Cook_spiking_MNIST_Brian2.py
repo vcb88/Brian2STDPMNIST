@@ -27,9 +27,11 @@ MNIST_data_path = './mnist/'
 def get_labeled_data(picklename, bTrain = True):
     """Read input-vector (image) and target class (label, 0-9) and return
        it as list of tuples.
+       picklename: Path to the output pickle file.
+       bTrain: True if training data, else False for test data.
     """
     if os.path.isfile('{}.pickle'.format(picklename)):
-        data = pickle.load(open('{}.pickle'.format(picklename)))
+        data = pickle.load(open('{}.pickle'.format(picklename), mode='rb'))
     else:
         # Open the images with gzip in read binary mode
         if bTrain:
@@ -52,15 +54,13 @@ def get_labeled_data(picklename, bTrain = True):
         # Get the data
         x = np.zeros((N, rows, cols), dtype=np.uint8)  # Initialize numpy array
         y = np.zeros((N, 1), dtype=np.uint8)  # Initialize numpy array
-        print('Unpacking {} images...'.format('training' if picklename == 'training' else 'test'))
+        print('Unpacking {} images...'.format('training' if bTrain else 'test'))
         for i in tqdm(range(N)):
-            if i % 1000 == 0:
-                print("i: %i" % i)
             x[i] = [[unpack('>B', images.read(1))[0] for unused_col in range(cols)]  for unused_row in range(rows) ]
             y[i] = unpack('>B', labels.read(1))[0]
 
         data = {'x': x, 'y': y, 'rows': rows, 'cols': cols}
-        pickle.dump(data, open("%s.pickle" % picklename, "wb"))
+        pickle.dump(data, open("{}.pickle".format(picklename), "wb"))
     return data
 
 def get_matrix_from_file(fileName):

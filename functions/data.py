@@ -5,6 +5,7 @@ A variety of functions for managing the loading of MNIST data.
 import os
 import pickle
 import numpy as np
+from struct import unpack
 
 def get_labeled_data(picklename, bTrain = True, MNIST_data_path='./mnist'):
     """ Read input-vector (image) and target class (label, 0-9) and return

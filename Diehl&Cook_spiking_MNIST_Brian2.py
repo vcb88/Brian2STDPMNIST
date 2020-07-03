@@ -10,7 +10,6 @@ import matplotlib.cm as cmap
 import time
 import os.path
 import scipy
-from struct import unpack
 from brian2 import *
 import os
 import brian2 as b2

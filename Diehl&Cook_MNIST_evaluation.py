@@ -11,7 +11,6 @@ import time
 import os.path
 import os
 import scipy 
-from struct import unpack
 from brian2 import *
 
 from functions.data import get_labeled_data
@@ -53,8 +52,8 @@ end_time_training = int(training_ending)
 start_time_testing = 0
 end_time_testing = int(testing_ending)
 
-n_e = 400
-n_input = 784
+n_e = 400 # Number of excitatory neurons
+n_input = 784 # Number of input neurons
 ending = ''
 
 print('load MNIST')

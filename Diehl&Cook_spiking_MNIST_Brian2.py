@@ -13,7 +13,9 @@ import scipy
 import pickle
 from struct import unpack
 from brian2 import *
+import os
 import brian2 as b2
+from tqdm import tqdm
 from brian2tools import *
 
 # specify the location of the MNIST data
@@ -26,16 +28,16 @@ def get_labeled_data(picklename, bTrain = True):
     """Read input-vector (image) and target class (label, 0-9) and return
        it as list of tuples.
     """
-    if os.path.isfile('%s.pickle' % picklename):
-        data = pickle.load(open('%s.pickle' % picklename))
+    if os.path.isfile('{}.pickle'.format(picklename)):
+        data = pickle.load(open('{}.pickle'.format(picklename)))
     else:
         # Open the images with gzip in read binary mode
         if bTrain:
-            images = open(MNIST_data_path + 'train-images.idx3-ubyte','rb')
-            labels = open(MNIST_data_path + 'train-labels.idx1-ubyte','rb')
+            images = open(os.path.join(MNIST_data_path, 'train-images.idx3-ubyte'), mode='rb')
+            labels = open(os.path.join(MNIST_data_path, 'train-labels.idx1-ubyte'), mode='rb')
         else:
-            images = open(MNIST_data_path + 't10k-images.idx3-ubyte','rb')
-            labels = open(MNIST_data_path + 't10k-labels.idx1-ubyte','rb')
+            images = open(os.path.join(MNIST_data_path, 't10k-images.idx3-ubyte'), mode='rb')
+            labels = open(os.path.join(MNIST_data_path, 't10k-labels.idx1-ubyte'), mode='rb')
         # Get metadata for images
         images.read(4)  # skip the magic_number
         number_of_images = unpack('>I', images.read(4))[0]
@@ -46,11 +48,12 @@ def get_labeled_data(picklename, bTrain = True):
         N = unpack('>I', labels.read(4))[0]
 
         if number_of_images != N:
-            raise Exception('number of labels did not match the number of images')
+            raise ValueError('The number of labels did not match the number of images')
         # Get the data
         x = np.zeros((N, rows, cols), dtype=np.uint8)  # Initialize numpy array
         y = np.zeros((N, 1), dtype=np.uint8)  # Initialize numpy array
-        for i in range(N):
+        print('Unpacking {} images...'.format('training' if picklename == 'training' else 'test'))
+        for i in tqdm(range(N)):
             if i % 1000 == 0:
                 print("i: %i" % i)
             x[i] = [[unpack('>B', images.read(1))[0] for unused_col in range(cols)]  for unused_row in range(rows) ]
@@ -211,7 +214,7 @@ print('time needed to load test set:', end - start)
 #------------------------------------------------------------------------------
 # set parameters and equations
 #------------------------------------------------------------------------------
-test_mode = True
+test_mode = True # Change this to False to retrain the network
 
 np.random.seed(0)
 data_path = './' # TODO: This should be a parameter
@@ -537,6 +540,7 @@ plt.figure(5)
 
 subplot(3,1,1)
 
+# The code seems to fail at the following step (NotImplementedError: Do not know how to plot object of type <class 'brian2.core.variables.VariableView'>)
 brian_plot(connections['XeAe'].w)
 subplot(3,1,2)
 

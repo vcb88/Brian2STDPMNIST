@@ -5,7 +5,9 @@ This is a modified version of the source code for the paper:
 ‘Unsupervised Learning of Digit Recognition Using Spike-Timing-Dependent Plasticity’, Diehl and Cook, (2015).
 
 Original code: Peter U. Diehl (https://github.com/peter-u-diehl/stdp-mnist)
+
 Updated for Brian2: zxzhijia (https://github.com/zxzhijia/Brian2STDPMNIST)
+
 Updated for Python3: sdpenguin
 
 ## Prerequisites

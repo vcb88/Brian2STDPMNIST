@@ -1,10 +1,16 @@
-# Brian 2 version source code for paper "Unsupervised Learning of Digit recognition using STDP"
+# "Unsupervised Learning of Digit recognition using STDP" in Brian2
 
-This small project is to translate Brian 1 code from Paper "Unsupervised learning of digit recognition using spike-timing-dependent plasticity" written by PU Diehl to Brian 2 version. 
+This is a modified version of the source code for the paper:
 
+‘Unsupervised Learning of Digit Recognition Using Spike-Timing-Dependent Plasticity’, Diehl and Cook, (2015).
 
-## Prerequisite
-1. Brian 2 
+Original code: Peter U. Diehl (https://github.com/peter-u-diehl/stdp-mnist)
+Updated for Brian2: zxzhijia (https://github.com/zxzhijia/Brian2STDPMNIST)
+Updated for Python3: sdpenguin
+
+## Prerequisites
+
+1. Brian2 
 2. MNIST datasets, which can be downloaded from http://yann.lecun.com/exdb/mnist/. 
    * The data set includes four gz files. Extract them after you downloaded them.
 
@@ -15,7 +21,7 @@ This small project is to translate Brian 1 code from Paper "Unsupervised learnin
 
 ## Training a new network:
 
-1. modify the main file "Diehl&Cook_spiking_MNIST_Brian2.py" by changing line 214 to "test_mode=False" and run the code. 
+1. Modify the main file "Diehl&Cook_spiking_MNIST_Brian2.py" by changing line 214 to "test_mode=False" and run the code. 
 2. The trained weights will be stored in the folder "weights", which can be used to test the performance.
 3. In order to test your training, change line 214 back to "test_mode=True". 
 4. Run the "Diehl&Cook_spiking_MNIST_Brian2.py" code to get the results. 

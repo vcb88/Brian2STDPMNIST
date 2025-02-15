@@ -11,6 +11,26 @@ services:
       - ./activity:/app/activity
     command: jupyter notebook --ip=0.0.0.0 --port=8888 --no-browser --allow-root --NotebookApp.token='' --NotebookApp.password=''
 
+  test-quick:
+    build: .
+    volumes:
+      - .:/app
+      - ./results:/app/results
+      - ./activity:/app/activity
+    command: python3 diehl_cook_spiking_mnist_brian2.py --test --test-size 1000 --data-dir /app/mnist
+    profiles:
+      - test
+
+  test-random:
+    build: .
+    volumes:
+      - .:/app
+      - ./results:/app/results
+      - ./activity:/app/activity
+    command: python3 diehl_cook_spiking_mnist_brian2.py --test --test-size 1000 --random-subset --data-dir /app/mnist
+    profiles:
+      - test
+
 volumes:
   results:
   activity:

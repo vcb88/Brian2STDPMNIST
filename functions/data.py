@@ -1,6 +1,7 @@
 '''
 A variety of functions for managing the loading of MNIST data.
 '''
+import random
 
 import os
 import pickle
@@ -48,3 +49,33 @@ def get_labeled_data(picklename, bTrain = True, MNIST_data_path='./mnist'):
         data = {'x': x, 'y': y, 'rows': rows, 'cols': cols}
         pickle.dump(data, open("{}.pickle".format(picklename), "wb"))
     return data
+
+def get_data_subset(data, size, random_subset=False):
+    """Get a subset of the data.
+    
+    Args:
+        data: Dictionary containing 'x' and 'y' arrays
+        size: Number of examples to include
+        random_subset: If True, randomly select examples, otherwise take first N
+        
+    Returns:
+        Dictionary containing the subset of data
+    """
+    total_size = len(data['y'])
+    size = min(size, total_size)  # Ensure we don't request more than available
+    
+    if random_subset:
+        # Create list of indices and shuffle it
+        indices = list(range(total_size))
+        random.shuffle(indices)
+        selected_indices = indices[:size]
+    else:
+        # Take first N examples
+        selected_indices = list(range(size))
+    
+    return {
+        'x': data['x'][selected_indices],
+        'y': data['y'][selected_indices],
+        'rows': data['rows'],
+        'cols': data['cols']
+    }

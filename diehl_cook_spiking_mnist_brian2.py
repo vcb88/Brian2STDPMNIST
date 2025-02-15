@@ -19,7 +19,7 @@ from brian2tools import *
 from tqdm import tqdm
 import datetime
 
-from functions.data import get_labeled_data
+from functions.data import get_labeled_data, get_data_subset
 from functions.quick_analysis import quick_analyze
 
 # Parse command line arguments
@@ -30,6 +30,8 @@ group.add_argument('--test', action='store_true', help='Test the network')
 parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
 parser.add_argument('--data-dir', default='./mnist/', help='Directory containing MNIST data')
 parser.add_argument('--save-interval', type=int, default=10000, help='Interval for saving weights')
+parser.add_argument('--test-size', type=int, default=10000, help='Number of examples to use for testing (default: 10000)')
+parser.add_argument('--random-subset', action='store_true', help='Use random subset of test data instead of first N examples')
 args = parser.parse_args()
 
 # Configure logging
@@ -190,9 +192,14 @@ end = time.time()
 print('time needed to load training set:', end - start)
 
 start = time.time()
-testing = get_labeled_data('testing', bTrain=False, MNIST_data_path=MNIST_data_path)
+full_testing = get_labeled_data('testing', bTrain=False, MNIST_data_path=MNIST_data_path)
+if test_mode and (args.test_size < 10000 or args.random_subset):
+    testing = get_data_subset(full_testing, args.test_size, args.random_subset)
+    logger.info(f'Using {len(testing["y"])} test examples' + (' (randomly selected)' if args.random_subset else ''))
+else:
+    testing = full_testing
 end = time.time()
-print('time needed to load test set:', end - start)
+logger.info(f'Time needed to load test set: {end - start:.2f}s')
 
 
 #------------------------------------------------------------------------------
@@ -204,11 +211,12 @@ np.random.seed(0)
 data_path = './' # TODO: This should be a parameter
 if test_mode:
     weight_path = data_path + 'weights/'
-    num_examples = 10000 * 1
+    num_examples = args.test_size
     use_testing_set = True
     do_plot_performance = False
     record_spikes = True
     ee_STDP_on = False
+    logger.info(f'Testing on {num_examples} examples' + (' (random subset)' if args.random_subset else ''))
     update_interval = num_examples
 else:
     weight_path = data_path + 'random/'

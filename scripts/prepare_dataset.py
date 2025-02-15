@@ -56,8 +56,9 @@ def prepare_mnist(data_dir='mnist'):
     
     # Download and extract each file
     for name, url in MNIST_URLS.items():
-        gz_path = os.path.join(data_dir, f"{name}.gz")
-        final_path = os.path.join(data_dir, os.path.splitext(os.path.basename(url))[0])
+        base_name = os.path.basename(url)
+        gz_path = os.path.join(data_dir, base_name)
+        final_path = os.path.join(data_dir, os.path.splitext(base_name)[0])
         
         # Download if not exists
         if not os.path.exists(gz_path):
@@ -145,15 +146,17 @@ if __name__ == "__main__":
         logger.info("Downloading dataset files...")
         ensure_dir(args.data_dir)
         for name, url in MNIST_URLS.items():
-            gz_path = os.path.join(args.data_dir, f"{name}.gz")
+            base_name = os.path.basename(url)
+            gz_path = os.path.join(args.data_dir, base_name)
             if not os.path.exists(gz_path):
                 download_file(url, gz_path)
     elif args.prepare_only:
         logger.info("Preparing dataset files...")
         ensure_dir(args.data_dir)
         for name, url in MNIST_URLS.items():
-            gz_path = os.path.join(args.data_dir, f"{name}.gz")
-            final_path = os.path.join(args.data_dir, os.path.splitext(os.path.basename(url))[0])
+            base_name = os.path.basename(url)
+            gz_path = os.path.join(args.data_dir, base_name)
+            final_path = os.path.join(args.data_dir, os.path.splitext(base_name)[0])
             if os.path.exists(gz_path) and not os.path.exists(final_path):
                 extract_gz(gz_path, final_path)
     else:

@@ -22,11 +22,8 @@ RUN pip install --no-cache-dir -r requirements.txt
 # Copy the project files
 COPY . .
 
-# Create mnist directory
-RUN mkdir -p mnist
-
-# Download MNIST dataset
-RUN python scripts/prepare_dataset.py
+# Create mnist directory with proper permissions
+RUN mkdir -p /app/mnist && chmod 777 /app/mnist
 
 # Create a non-root user
 RUN useradd -m -u 1000 brian2user

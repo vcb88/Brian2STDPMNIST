@@ -2,9 +2,11 @@
 Created on 15.12.2014
 
 @author: Peter U. Diehl
+Updated for command-line usage by vcb88
 '''
 
-
+import argparse
+import logging
 import numpy as np
 import matplotlib.cm as cmap
 import time
@@ -17,8 +19,26 @@ from brian2tools import *
 
 from functions.data import get_labeled_data
 
+# Parse command line arguments
+parser = argparse.ArgumentParser(description='STDP-based MNIST Classification')
+group = parser.add_mutually_exclusive_group(required=True)
+group.add_argument('--train', action='store_true', help='Train the network')
+group.add_argument('--test', action='store_true', help='Test the network')
+parser.add_argument('--verbose', action='store_true', help='Enable verbose output')
+parser.add_argument('--data-dir', default='./mnist/', help='Directory containing MNIST data')
+parser.add_argument('--save-interval', type=int, default=10000, help='Interval for saving weights')
+args = parser.parse_args()
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO if args.verbose else logging.WARNING,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+logger = logging.getLogger(__name__)
+
 # specify the location of the MNIST data
-MNIST_data_path = './mnist/'
+MNIST_data_path = args.data_dir
+test_mode = args.test  # Set test_mode based on command line argument
 
 #------------------------------------------------------------------------------
 # functions
@@ -46,7 +66,7 @@ def get_matrix_from_file(fileName):
 
 
 def save_connections(ending = ''):
-    print('save connections')
+    logger.info('Saving connections')
     for connName in save_conns:
         conn = connections[connName]
         connListSparse = zip(conn.i, conn.j, conn.w)
@@ -175,7 +195,7 @@ print('time needed to load test set:', end - start)
 #------------------------------------------------------------------------------
 # set parameters and equations
 #------------------------------------------------------------------------------
-test_mode = True # Change this to False to retrain the network
+# test_mode is now set from command line arguments
 
 np.random.seed(0)
 data_path = './' # TODO: This should be a parameter

@@ -59,6 +59,27 @@ docker-stop:
         docker-compose down
         @echo "$(GREEN)Containers stopped successfully$(NC)"
 
+# Commands for running inside container
+container-train:
+        @echo "$(BLUE)Starting training inside container...$(NC)"
+        @docker exec -it $(CONTAINER_NAME) python3 Diehl\&Cook_spiking_MNIST_Brian2.py --train
+        @echo "$(GREEN)Training completed$(NC)"
+
+container-test:
+        @echo "$(BLUE)Starting testing inside container...$(NC)"
+        @docker exec -it $(CONTAINER_NAME) python3 Diehl\&Cook_spiking_MNIST_Brian2.py --test
+        @echo "$(GREEN)Testing completed$(NC)"
+
+container-train-verbose:
+        @echo "$(BLUE)Starting training inside container with verbose output...$(NC)"
+        @docker exec -it $(CONTAINER_NAME) python3 Diehl\&Cook_spiking_MNIST_Brian2.py --train --verbose
+        @echo "$(GREEN)Training completed$(NC)"
+
+container-test-verbose:
+        @echo "$(BLUE)Starting testing inside container with verbose output...$(NC)"
+        @docker exec -it $(CONTAINER_NAME) python3 Diehl\&Cook_spiking_MNIST_Brian2.py --test --verbose
+        @echo "$(GREEN)Testing completed$(NC)"
+
 # Dataset management commands (for running inside container)
 dataset-download:
         @echo "$(BLUE)Downloading MNIST dataset inside container...$(NC)"
@@ -79,6 +100,11 @@ dataset-clean:
         @echo "$(BLUE)Cleaning dataset inside container...$(NC)"
         @docker exec -it $(CONTAINER_NAME) rm -rf /app/mnist/*
         @echo "$(GREEN)Dataset cleaned successfully$(NC)"
+
+# Combined commands for convenience
+container-prepare-and-train: dataset-prepare container-train
+
+container-full-test: dataset-status container-test
 
 clean:
         @echo "$(BLUE)Cleaning project...$(NC)"

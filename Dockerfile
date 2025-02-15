@@ -23,8 +23,9 @@ RUN pip install --no-cache-dir --upgrade pip setuptools>=61.0.0 && \
 # Copy the project files
 COPY . .
 
-# Create mnist directory with proper permissions
-RUN mkdir -p /app/mnist && chmod 777 /app/mnist
+# Create directories with proper permissions
+RUN mkdir -p /app/mnist /app/results /app/activity && \
+    chmod 777 /app/mnist /app/results /app/activity
 
 # Create a non-root user
 RUN useradd -m -u 1000 brian2user

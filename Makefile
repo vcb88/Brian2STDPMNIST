@@ -8,7 +8,7 @@ VENV_BIN := $(VENV)/bin
 JUPYTER_PORT := 8888
 DOCKER_IMAGE := brian2-stdp-mnist
 DOCKER_TAG := latest
-CONTAINER_NAME := brian2stdpmnist_notebook_1
+CONTAINER_NAME := brian2stdpmnist-notebook-1
 
 # Colors for pretty printing
 BLUE := \033[1;34m

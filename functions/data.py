@@ -21,11 +21,11 @@ def get_labeled_data(picklename, bTrain = True, MNIST_data_path='./mnist'):
     else:
         # Open the images with gzip in read binary mode
         if bTrain:
-            images = open(os.path.join(MNIST_data_path, 'train-images.idx3-ubyte'), mode='rb')
-            labels = open(os.path.join(MNIST_data_path, 'train-labels.idx1-ubyte'), mode='rb')
+            images = open(os.path.join(MNIST_data_path, 'train-images-idx3-ubyte'), mode='rb')
+            labels = open(os.path.join(MNIST_data_path, 'train-labels-idx1-ubyte'), mode='rb')
         else:
-            images = open(os.path.join(MNIST_data_path, 't10k-images.idx3-ubyte'), mode='rb')
-            labels = open(os.path.join(MNIST_data_path, 't10k-labels.idx1-ubyte'), mode='rb')
+            images = open(os.path.join(MNIST_data_path, 't10k-images-idx3-ubyte'), mode='rb')
+            labels = open(os.path.join(MNIST_data_path, 't10k-labels-idx1-ubyte'), mode='rb')
         # Get metadata for images
         images.read(4)  # skip the magic_number
         number_of_images = unpack('>I', images.read(4))[0]

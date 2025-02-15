@@ -7,3 +7,4 @@ jupyter>=1.0.0
 notebook>=6.1.4
 tqdm>=4.50.2
 pytest>=6.1.1
+termplotlib>=0.3.5

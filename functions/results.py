@@ -5,6 +5,14 @@ import logging
 
 logger = logging.getLogger(__name__)
 
+def get_predictions(result_vecs: np.ndarray) -> np.ndarray:
+    """Convert network activations to digit predictions."""
+    # Get neuron with maximum activation for each example
+    max_activations = np.argmax(result_vecs, axis=1)
+    # Map neuron activations to digit predictions (assuming 40 neurons per digit)
+    predicted_numbers = max_activations // 40
+    return np.clip(predicted_numbers, 0, 9)  # Ensure predictions are in valid range
+
 def analyze_results(input_numbers_file: str, result_vectors_file: str) -> Tuple[float, List[int], List[int]]:
     """
     Analyze the results of the network simulation.
@@ -22,8 +30,13 @@ def analyze_results(input_numbers_file: str, result_vectors_file: str) -> Tuple[
     input_numbers = np.load(input_numbers_file)
     result_vecs = np.load(result_vectors_file)
     
-    # Get the predicted numbers (maximum activation)
-    predicted_numbers = np.argmax(result_vecs, axis=1)
+    # Analyze the result vectors
+    logger.info(f'Result vectors shape: {result_vecs.shape}')
+    logger.info(f'Result vectors min: {result_vecs.min()}, max: {result_vecs.max()}')
+    
+    # Get predictions
+    predicted_numbers = get_predictions(result_vecs)
+    logger.info(f'Predictions range: {predicted_numbers.min()} to {predicted_numbers.max()}')
     
     # Calculate accuracy
     correct = (predicted_numbers == input_numbers)
@@ -50,7 +63,7 @@ def plot_confusion_matrix(input_numbers_file: str, result_vectors_file: str, sav
     """
     input_numbers = np.load(input_numbers_file)
     result_vecs = np.load(result_vectors_file)
-    predicted_numbers = np.argmax(result_vecs, axis=1)
+    predicted_numbers = get_predictions(result_vecs)
     
     # Create confusion matrix
     confusion = np.zeros((10, 10), dtype=int)
@@ -92,7 +105,7 @@ def plot_accuracy_per_digit(input_numbers_file: str, result_vectors_file: str, s
     """
     input_numbers = np.load(input_numbers_file)
     result_vecs = np.load(result_vectors_file)
-    predicted_numbers = np.argmax(result_vecs, axis=1)
+    predicted_numbers = get_predictions(result_vecs)
     
     accuracies = []
     counts = []
@@ -107,6 +120,7 @@ def plot_accuracy_per_digit(input_numbers_file: str, result_vectors_file: str, s
             accuracy = 0
         accuracies.append(accuracy)
         counts.append(count)
+        logger.info(f'Digit {digit}: {accuracy:.1f}% ({count} examples)')
     
     # Plot
     plt.figure(figsize=(12, 6))

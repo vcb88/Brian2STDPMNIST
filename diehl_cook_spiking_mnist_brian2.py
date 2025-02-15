@@ -20,6 +20,7 @@ from tqdm import tqdm
 import datetime
 
 from functions.data import get_labeled_data
+from functions.quick_analysis import quick_analyze
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='STDP-based MNIST Classification')
@@ -478,9 +479,9 @@ while j < (int(num_examples)):
 
 
 #------------------------------------------------------------------------------
-# save results
+# save and analyze results
 #------------------------------------------------------------------------------
-print('save results')
+logger.info('Saving and analyzing results')
 if not test_mode:
     save_theta()
 if not test_mode:
@@ -488,6 +489,14 @@ if not test_mode:
 else:
     np.save(data_path + 'activity/resultPopVecs' + str(num_examples), result_monitor)
     np.save(data_path + 'activity/inputNumbers' + str(num_examples), input_numbers)
+    
+    # Perform quick analysis if in test mode
+    if test_mode:
+        logger.info('Performing quick analysis of test results...')
+        accuracy, per_digit_acc = quick_analyze(
+            data_path + 'activity/inputNumbers' + str(num_examples) + '.npy',
+            data_path + 'activity/resultPopVecs' + str(num_examples) + '.npy'
+        )
 
 
 #------------------------------------------------------------------------------

@@ -15,8 +15,9 @@ def get_labeled_data(picklename, bTrain = True, MNIST_data_path='./mnist'):
         bTrain: True if training data, else False for test data.
         MNIST_data_path: Directory containing the MNIST files.
     """
-    if os.path.isfile('{}.pickle'.format(picklename)):
-        data = pickle.load(open('{}.pickle'.format(picklename), mode='rb'))
+    pickle_path = os.path.join(MNIST_data_path, '{}.pickle'.format(os.path.basename(picklename)))
+    if os.path.isfile(pickle_path):
+        data = pickle.load(open(pickle_path, mode='rb'))
     else:
         # Open the images with gzip in read binary mode
         if bTrain:

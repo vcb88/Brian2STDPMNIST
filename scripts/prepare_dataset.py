@@ -101,10 +101,64 @@ def verify_files(data_dir='mnist'):
     
     return all_valid
 
+def show_status(data_dir='mnist'):
+    """Show the status of dataset files."""
+    required_files = {
+        'train-images-idx3-ubyte': 47040016,
+        'train-labels-idx1-ubyte': 60008,
+        't10k-images-idx3-ubyte': 7840016,
+        't10k-labels-idx1-ubyte': 10008
+    }
+    
+    logger.info("Dataset Status:")
+    all_valid = True
+    for filename, expected_size in required_files.items():
+        filepath = os.path.join(data_dir, filename)
+        status = "✓" if os.path.exists(filepath) else "✗"
+        size_info = ""
+        if os.path.exists(filepath):
+            actual_size = os.path.getsize(filepath)
+            if actual_size == expected_size:
+                size_info = f"(Size: {actual_size} bytes - Valid)"
+            else:
+                size_info = f"(Size: {actual_size} bytes - Expected: {expected_size} bytes)"
+                status = "!"
+                all_valid = False
+        logger.info(f"{status} {filename} {size_info}")
+    
+    return all_valid
+
 if __name__ == "__main__":
-    data_dir = 'mnist'
-    prepare_mnist(data_dir)
-    if verify_files(data_dir):
-        logger.info("Dataset verification successful!")
+    import argparse
+    
+    parser = argparse.ArgumentParser(description='MNIST Dataset preparation script')
+    parser.add_argument('--download-only', action='store_true', help='Only download the dataset files')
+    parser.add_argument('--prepare-only', action='store_true', help='Only prepare (extract) the dataset files')
+    parser.add_argument('--status', action='store_true', help='Show dataset status')
+    parser.add_argument('--data-dir', default='mnist', help='Directory for dataset files')
+    
+    args = parser.parse_args()
+    
+    if args.status:
+        show_status(args.data_dir)
+    elif args.download_only:
+        logger.info("Downloading dataset files...")
+        ensure_dir(args.data_dir)
+        for name, url in MNIST_URLS.items():
+            gz_path = os.path.join(args.data_dir, f"{name}.gz")
+            if not os.path.exists(gz_path):
+                download_file(url, gz_path)
+    elif args.prepare_only:
+        logger.info("Preparing dataset files...")
+        ensure_dir(args.data_dir)
+        for name, url in MNIST_URLS.items():
+            gz_path = os.path.join(args.data_dir, f"{name}.gz")
+            final_path = os.path.join(args.data_dir, os.path.splitext(os.path.basename(url))[0])
+            if os.path.exists(gz_path) and not os.path.exists(final_path):
+                extract_gz(gz_path, final_path)
     else:
-        logger.error("Dataset verification failed!")
+        prepare_mnist(args.data_dir)
+        if verify_files(args.data_dir):
+            logger.info("Dataset verification successful!")
+        else:
+            logger.error("Dataset verification failed!")

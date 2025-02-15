@@ -108,6 +108,25 @@ container-prepare-and-train: dataset-prepare container-train
 
 container-full-test: dataset-status container-test
 
+reset-and-test:
+	@echo "$(BLUE)Stopping containers...$(NC)"
+	docker-compose down
+	@echo "$(BLUE)Cleaning MNIST data...$(NC)"
+	rm -rf mnist/*
+	@echo "$(BLUE)Pulling latest changes...$(NC)"
+	git pull
+	@echo "$(BLUE)Rebuilding Docker image...$(NC)"
+	docker-compose build
+	@echo "$(BLUE)Starting containers...$(NC)"
+	docker-compose up -d
+	@echo "$(BLUE)Preparing dataset...$(NC)"
+	@$(MAKE) dataset-download
+	@$(MAKE) dataset-prepare
+	@$(MAKE) dataset-status
+	@echo "$(BLUE)Running tests...$(NC)"
+	@$(MAKE) container-test
+	@echo "$(GREEN)Reset and test sequence completed$(NC)"
+
 clean:
 	@echo "$(BLUE)Cleaning project...$(NC)"
 	rm -rf $(VENV)

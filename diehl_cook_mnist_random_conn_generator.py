@@ -39,7 +39,7 @@ def create_weights():
     nInput = 784
     nE = 400
     nI = nE 
-    dataPath = './random/'
+    dataPath = './weights/random/'
     weight = {}
     weight['ee_input'] = 0.3 
     weight['ei_input'] = 0.2 

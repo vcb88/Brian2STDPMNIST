@@ -210,7 +210,7 @@ logger.info(f'Time needed to load test set: {end - start:.2f}s')
 np.random.seed(0)
 data_path = './' # TODO: This should be a parameter
 if test_mode:
-    weight_path = data_path + 'weights/'
+    weight_path = data_path + 'weights/random/'
     num_examples = args.test_size
     use_testing_set = True
     do_plot_performance = False
@@ -356,7 +356,7 @@ for subgroup_n, name in enumerate(population_names):
     print('create recurrent connections')
     for conn_type in recurrent_conn_names:
         connName = name+conn_type[0]+name+conn_type[1]
-        weightMatrix = get_matrix_from_file(weight_path + '../random/' + connName + ending + '.npy')
+        weightMatrix = get_matrix_from_file(weight_path + connName + ending + '.npy')
         model = 'w : 1'
         pre = 'g%s_post += w' % conn_type[0]
         post = ''

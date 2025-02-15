@@ -16,6 +16,8 @@ from brian2 import *
 import os
 import brian2 as b2
 from brian2tools import *
+from tqdm import tqdm
+import datetime
 
 from functions.data import get_labeled_data
 
@@ -406,11 +408,13 @@ for name in input_connection_names:
 # run the simulation and set inputs
 #------------------------------------------------------------------------------
 
+logger.info(f'Simulation started at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
 net = Network()
 for obj_list in [neuron_groups, input_groups, connections, rate_monitors,
         spike_monitors, spike_counters]:
     for key in obj_list:
         net.add(obj_list[key])
+logger.info(f'Network built with {len(neuron_groups)} neuron groups, {len(connections)} connections')
 
 previous_spike_count = np.zeros(n_e)
 assignments = np.zeros(n_e)

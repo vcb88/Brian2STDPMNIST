@@ -349,7 +349,9 @@ for subgroup_n, name in enumerate(population_names):
     neuron_groups[name+'e'].v = v_rest_e - 40. * b2.mV
     neuron_groups[name+'i'].v = v_rest_i - 40. * b2.mV
     if test_mode or weight_path[-8:] == 'weights/':
-        neuron_groups['e'].theta = np.load(weight_path + 'theta_' + name + ending + '.npy') * b2.volt
+        theta_path = data_path + 'weights/' + 'theta_' + name + ending + '.npy'
+        logger.info(f'Loading theta weights from: {theta_path}')
+        neuron_groups['e'].theta = np.load(theta_path) * b2.volt
     else:
         neuron_groups['e'].theta = np.ones((n_e)) * 20.0*b2.mV
 

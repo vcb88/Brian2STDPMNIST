@@ -31,6 +31,3 @@ services:
     profiles:
       - test
 
-volumes:
-  results:
-  activity:

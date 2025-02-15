@@ -12,9 +12,101 @@ Updated for Python3: sdpenguin
 
 ## Prerequisites
 
+You have two options to run this project:
+
+### Option 1: Local Installation
+
 1. Brian2 
 2. MNIST datasets, which can be downloaded from http://yann.lecun.com/exdb/mnist/. 
    * The data set includes four gz files. Extract them after you downloaded them.
+
+### Option 2: Docker Environment (Recommended)
+
+1. Docker and Docker Compose installed on your system
+2. Run `make docker-build` to build the container
+3. Run `make docker-run` to start the environment
+
+## Running Tests
+
+### Quick Start with Docker
+
+1. Start with a clean environment:
+   ```bash
+   make reset-and-test
+   ```
+   This will reset the environment, prepare the dataset, and run full tests.
+
+### Available Test Commands
+
+The project provides several options for running tests:
+
+1. Full Testing:
+   ```bash
+   make container-test
+   ```
+   Runs tests on the complete test dataset.
+
+2. Quick Testing (1000 examples):
+   ```bash
+   make container-test-quick
+   ```
+   Runs tests on a fixed subset of 1000 examples.
+
+3. Random Testing (1000 examples):
+   ```bash
+   make container-test-random
+   ```
+   Runs tests on a random subset of 1000 examples.
+
+4. Custom Size Testing:
+   ```bash
+   make container-test-size SIZE=500
+   ```
+   Runs tests on the first N examples (specified by SIZE).
+
+5. Random Size Testing:
+   ```bash
+   make container-test-size-random SIZE=500
+   ```
+   Runs tests on a random subset of N examples (specified by SIZE).
+
+6. Fully Custom Testing:
+   ```bash
+   make container-test-custom TEST_ARGS="--test-size 500 --random-subset --verbose"
+   ```
+   Allows full customization of test parameters.
+
+### Test Parameters
+
+- `SIZE`: Number of examples to test (required for -size commands)
+- `TEST_ARGS`: Custom arguments for test configuration (for container-test-custom)
+  Available options:
+  - `--test-size N`: Number of examples to test
+  - `--random-subset`: Use random subset of examples
+  - `--verbose`: Enable verbose output
+  - `--data-dir PATH`: Custom data directory path
+
+### Dataset Management
+
+1. Download MNIST dataset:
+   ```bash
+   make dataset-download
+   ```
+
+2. Prepare dataset:
+   ```bash
+   make dataset-prepare
+   ```
+
+3. Check dataset status:
+   ```bash
+   make dataset-status
+   ```
+
+4. Clean dataset:
+   ```bash
+   make dataset-clean
+   ```
 
 ## Testing with pretrained weights:
 

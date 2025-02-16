@@ -1,6 +1,7 @@
 import numpy as np
 import logging
 from typing import Dict, Any
+from brian2 import ms, second  # Import Brian2 units
 
 logger = logging.getLogger(__name__)
 
@@ -56,8 +57,9 @@ def analyze_activation_times(spike_monitor: Any, neuron_indices: np.ndarray) -> 
     if len(neuron_indices) == 0:
         return {}
         
-    spike_times = spike_monitor.t/ms
-    spike_indices = spike_monitor.i
+    # Convert spike times to milliseconds, handling Brian2 units properly
+    spike_times = np.array(spike_monitor.t/ms, dtype=float)
+    spike_indices = np.array(spike_monitor.i, dtype=int)
     
     first_spikes = {}
     last_spikes = {}
@@ -72,10 +74,10 @@ def analyze_activation_times(spike_monitor: Any, neuron_indices: np.ndarray) -> 
         return {}
         
     return {
-        'earliest_spike': min(first_spikes.values()),
-        'latest_spike': max(last_spikes.values()),
-        'mean_first_spike': np.mean(list(first_spikes.values())),
-        'mean_last_spike': np.mean(list(last_spikes.values()))
+        'earliest_spike': float(min(first_spikes.values())),
+        'latest_spike': float(max(last_spikes.values())),
+        'mean_first_spike': float(np.mean(list(first_spikes.values()))),
+        'mean_last_spike': float(np.mean(list(last_spikes.values())))
     }
 
 def diagnostic_report(

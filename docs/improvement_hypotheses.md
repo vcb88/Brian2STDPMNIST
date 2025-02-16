@@ -4,23 +4,39 @@ This document tracks potential improvements based on diagnostic analysis of the 
 
 ## Current Observations (as of February 2025)
 
-### Silent Neurons Issue (35.5% inactive)
+### Network Activity Statistics
+```
+Silent neurons: 47.8%
+Mean spikes: 8.37
+Activity distribution:
+- 1-10 spikes: 25.0%
+- 11-50 spikes: 15.2%
+- 51-100 spikes: 3.5%
+- >101 spikes: 0.8%
+```
 
-Current diagnostic data shows:
-- Input weights (XeAe) appear normal
-- Output weights (AeAi) show anomalies:
-  * Zero weights present
-  * High variance (Std: 0.519350)
-  * Very low mean (0.026000)
-- Thresholds (theta):
-  * Silent neurons: fixed at 0.019786
-  * Active neurons: range 0.019836 - 0.023811
+### Weight Statistics
+```
+Input weights (XeAe):
+- Min: 0.001648
+- Max: 0.260133
+- Mean: 0.099498
+- Std: 0.056139
+
+Output weights (AeAi):
+- Min: 0.000000
+- Max: 10.400000
+- Mean: 0.026000
+- Std: 0.519350
+```
 
 ### Temporal Dynamics
-- First spike: 84.1 ms
-- Last spike: 107332.0 ms
-- Large variation in activation timing
-- Uneven activity distribution across time
+```
+Earliest spike: 82.0 ms
+Latest spike: 129348.0 ms
+Mean first spike: 47303.6 ms
+Mean last spike: 101992.8 ms
+```
 
 ## Improvement Hypotheses
 
@@ -29,43 +45,105 @@ Current diagnostic data shows:
 - Add initialization noise to thresholds
 - Review and adjust adaptation parameters
 - Consider dynamic adaptation rates
+- Add homeostatic threshold regulation
 
-### 2. Output Weight Initialization (Priority: Medium)
-**Status: Proposed**
-- Prevent zero weights in initialization
-- Implement more uniform initial distribution
-- Consider minimum weight constraints
+### 2. Output Weight Initialization (Priority: High)
+**Status: Pending**
+- Current issues:
+  * Zero weights present
+  * Extremely high variance (std/mean > 20)
+  * Very low mean value
+- Proposed solutions:
+  * Establish minimum weight threshold
+  * Reduce initial weight variance
+  * Increase mean weight value
+  * Implement weight normalization
 
-### 3. Homeostatic Mechanisms (Priority: Medium)
-**Status: Proposed**
-- Add activity normalization
-- Implement target activity levels
-- Consider local inhibition adjustments
+### 3. Temporal Dynamics Optimization (Priority: High)
+**Status: Pending**
+- Current issues:
+  * Large activation time spread
+  * Possible wave-like activation patterns
+  * Potential synchronization problems
+- Proposed solutions:
+  * Add inhibitory neuron synchronization
+  * Modify synaptic delays
+  * Implement group refractory periods
+  * Add temporal regularization
 
-### 4. Temporal Distribution (Priority: Low)
-**Status: Proposed**
-- Analyze input pattern timing
-- Consider temporal regularization
-- Investigate activation delays
+### 4. Activity Distribution Improvements (Priority: Medium)
+**Status: Pending**
+- Current issues:
+  * High neuron competition
+  * Insufficient specialization
+  * Excitation/inhibition imbalance
+- Proposed solutions:
+  * Implement lateral inhibition
+  * Modify STDP for better specialization
+  * Add synaptic weight normalization
+  * Balance excitation/inhibition
 
-## Implementation Notes
+### 5. Input Weight Optimization (Priority: Medium)
+**Status: Pending**
+- Current issues:
+  * Narrow weight range
+  * Insufficient input selectivity
+  * Poor rare pattern learning
+- Proposed solutions:
+  * Expand weight range
+  * Modify STDP rules
+  * Implement input normalization
+  * Add pattern-specific adaptations
+
+### 6. Metabolic Optimization (Priority: Low)
+**Status: Pending**
+- Current issues:
+  * High percentage of silent neurons
+  * Low mean activity
+  * Possible energy optimization
+- Proposed solutions:
+  * Add metabolic cost for inactivity
+  * Implement activity rewards
+  * Modify inhibition/excitation balance
+  * Add homeostatic activity regulation
+
+### 7. Network Structure Optimization (Priority: Low)
+**Status: Pending**
+- Current issues:
+  * Possible topology problems
+  * Connection density issues
+  * Non-optimal connection distribution
+- Proposed solutions:
+  * Modify connection topology
+  * Add local connectivity
+  * Experiment with connection sparsity
+  * Implement structured connectivity
+
+## Implementation Strategy
 
 ### Current Focus
-Currently implementing threshold adaptation improvements:
-1. Adding controlled noise to initial thresholds
-2. Adjusting adaptation parameters
-3. Monitoring effects on neuron activation rates
+Testing threshold homeostasis mechanism:
+1. Return to original theta adaptation
+2. Add homeostatic threshold adjustment
+3. Initialize theta below homeostatic threshold
+4. Reduce initial theta variance
 
-### Future Steps
-1. Monitor effects of threshold changes
-2. Collect data on activation patterns
-3. Evaluate need for additional mechanisms
+### Planned Sequence
+1. Complete threshold homeostasis testing
+2. Address output weight initialization
+3. Optimize temporal dynamics
+4. Implement lateral inhibition
+5. Review and adjust based on results
 
 ## Success Metrics
-- Reduce silent neuron percentage below 20%
-- Achieve more uniform threshold distribution
-- Maintain or improve classification accuracy
-- Reduce temporal activation variance
+- Primary:
+  * Reduce silent neuron percentage below 20%
+  * Achieve more uniform activity distribution
+  * Maintain or improve classification accuracy
+- Secondary:
+  * Reduce temporal activation variance
+  * Improve weight distribution
+  * Optimize energy efficiency
 
 ## Updates and Results
 (This section will be updated as improvements are implemented and tested)

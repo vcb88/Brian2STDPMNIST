@@ -316,8 +316,8 @@ n_input = 784
 n_e = 400
 n_i = n_e
 # Time constants for example presentation and network reset
-single_example_time = 0.35 * b2.second  # unchanged
-resting_time = 0.17 * b2.second        # increased to allow better recovery
+single_example_time = 0.35 * b2.second
+resting_time = 0.15 * b2.second
 runtime = num_examples * (single_example_time + resting_time)
 if num_examples <= 10000:
     update_interval = num_examples
@@ -331,16 +331,15 @@ else:
     save_connections_interval = 10000
     update_interval = 10000
 
-# Neuronal voltage parameters
+# Neuronal parameters
 v_rest_e = -65. * b2.mV
 v_rest_i = -60. * b2.mV
 v_reset_e = -65. * b2.mV
 v_reset_i = -45. * b2.mV
 v_thresh_e = -52. * b2.mV
 v_thresh_i = -40. * b2.mV
-# Adjusted refractory periods for better response properties
-refrac_e = 4. * b2.ms  # reduced to allow more frequent activation
-refrac_i = 2. * b2.ms  # unchanged
+refrac_e = 5. * b2.ms
+refrac_i = 2. * b2.ms
 
 weight = {}
 delay = {}
@@ -381,7 +380,7 @@ else:
     timer = 0*ms
     '''
 offset = 20.0*b2.mV
-# Standard threshold condition
+# Original threshold condition
 v_thresh_e_str = '(v>(theta - offset + v_thresh_e)) and (timer>refrac_e)'
 v_thresh_i_str = 'v>v_thresh_i'
 v_reset_i_str = 'v=v_reset_i'
@@ -446,11 +445,8 @@ for subgroup_n, name in enumerate(population_names):
         logger.info(f'Loading theta weights from: {theta_path}')
         neuron_groups['e'].theta = np.load(theta_path) * b2.volt
     else:
-        # Initialize theta slightly below homeostatic threshold
-        base_theta = 19.0 * b2.mV
-        noise_scale = 0.2 * b2.mV  # Smaller noise for more uniform start
-        theta_values = np.random.normal(float(base_theta), float(noise_scale), n_e)
-        neuron_groups['e'].theta = theta_values * b2.volt
+        # Original theta initialization
+        neuron_groups['e'].theta = np.ones((n_e)) * 20.0*b2.mV
 
     print('create recurrent connections')
     for conn_type in recurrent_conn_names:

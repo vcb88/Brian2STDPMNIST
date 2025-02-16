@@ -115,13 +115,24 @@ def save_connections(ending = ''):
     logger.info('Saving connections')
     for connName in save_conns:
         conn = connections[connName]
-        connListSparse = zip(conn.i, conn.j, conn.w)
+        # Convert to numpy arrays and then to list to ensure proper serialization
+        connListSparse = list(zip(
+            np.array(conn.i).astype(int),
+            np.array(conn.j).astype(int),
+            np.array(conn.w).astype(float)
+        ))
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(data_path + 'weights/' + connName + ending), exist_ok=True)
         np.save(data_path + 'weights/' + connName + ending, connListSparse)
 
 def save_theta(ending = ''):
-    print('save theta')
+    logger.info('Saving theta values')
     for pop_name in population_names:
-        np.save(data_path + 'weights/theta_' + pop_name + ending, neuron_groups[pop_name + 'e'].theta)
+        # Convert Brian2 quantity to float array
+        theta_values = np.array(neuron_groups[pop_name + 'e'].theta_).astype(float)
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(data_path + 'weights/theta_' + pop_name + ending), exist_ok=True)
+        np.save(data_path + 'weights/theta_' + pop_name + ending, theta_values)
 
 def normalize_weights():
     for connName in connections:

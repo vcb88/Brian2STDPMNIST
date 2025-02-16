@@ -330,12 +330,13 @@ else:
     save_connections_interval = 10000
     update_interval = 10000
 
-v_rest_e = -65. * b2.mV
-v_rest_i = -60. * b2.mV
-v_reset_e = -65. * b2.mV
-v_reset_i = -45. * b2.mV
-v_thresh_e = -52. * b2.mV
-v_thresh_i = -40. * b2.mV
+# Slightly adjusted threshold values for excitatory neurons
+v_rest_e = -65. * b2.mV    # unchanged
+v_rest_i = -60. * b2.mV    # unchanged
+v_reset_e = -63. * b2.mV   # increased by 2mV to help with repeated activation
+v_reset_i = -45. * b2.mV   # unchanged
+v_thresh_e = -53. * b2.mV  # lowered by 1mV to make activation easier
+v_thresh_i = -40. * b2.mV  # unchanged
 refrac_e = 5. * b2.ms
 refrac_i = 2. * b2.ms
 

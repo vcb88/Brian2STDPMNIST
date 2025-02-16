@@ -371,7 +371,7 @@ if test_mode:
 else:
     # Threshold adaptation parameters
     tc_theta = 1e7 * b2.ms
-    theta_plus_e = 0.12 * b2.mV  # Further increased from 0.11mV to continue optimization
+    theta_plus_e = 0.13 * b2.mV  # Further increased from 0.12mV to continue optimization
     
     # Simple reset with theta modification
     scr_e = '''

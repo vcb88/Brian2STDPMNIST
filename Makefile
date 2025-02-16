@@ -12,6 +12,8 @@ DOCKER_TAG := latest
 # Training parameters
 EPOCHS ?= 3
 TRAIN_SIZE ?= 60000
+NUM_THREADS ?= 8
+DEVICE ?= runtime
 
 # Color output
 RED=\033[0;31m
@@ -42,117 +44,125 @@ test: container-test
 
 # Shortcut for Jupyter notebook
 jupyter: docker-run
-        @echo "$(GREEN)Jupyter notebook is available at http://localhost:$(JUPYTER_PORT)$(NC)"
+	@echo "$(GREEN)Jupyter notebook is available at http://localhost:$(JUPYTER_PORT)$(NC)"
 
 docker-build:
-        @echo "$(BLUE)Building Docker image...$(NC)"
-        @docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) . 2> >(grep -v "View build details\|What's next" >&2)
-        @echo "$(GREEN)Docker image built successfully$(NC)"
+	@echo "$(BLUE)Building Docker image...$(NC)"
+	@docker build -t $(DOCKER_IMAGE):$(DOCKER_TAG) . 2> >(grep -v "View build details\|What's next" >&2)
+	@echo "$(GREEN)Docker image built successfully$(NC)"
 
 docker-run:
-        @echo "$(BLUE)Starting Docker containers...$(NC)"
-        @docker-compose up -d 2> >(grep -v "View\|What's next" >&2)
-        @echo "$(GREEN)Containers started successfully$(NC)"
-        @echo "$(GREEN)Jupyter notebook is available at http://localhost:$(JUPYTER_PORT)$(NC)"
+	@echo "$(BLUE)Starting Docker containers...$(NC)"
+	@docker-compose up -d 2> >(grep -v "View\|What's next" >&2)
+	@echo "$(GREEN)Containers started successfully$(NC)"
+	@echo "$(GREEN)Jupyter notebook is available at http://localhost:$(JUPYTER_PORT)$(NC)"
 
 docker-stop:
-        @echo "$(BLUE)Stopping Docker containers...$(NC)"
-        @docker-compose down 2> >(grep -v "View\|What's next" >&2)
-        @echo "$(GREEN)Containers stopped successfully$(NC)"
+	@echo "$(BLUE)Stopping Docker containers...$(NC)"
+	@docker-compose down 2> >(grep -v "View\|What's next" >&2)
+	@echo "$(GREEN)Containers stopped successfully$(NC)"
 
 # Commands for running inside container
 container-train:
-        @echo "$(BLUE)Starting training inside container with default parameters...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --train --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
-        @echo "$(GREEN)Training completed$(NC)"
+	@echo "$(BLUE)Starting training inside container with default parameters...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --train --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
+	@echo "$(GREEN)Training completed$(NC)"
 
 # Training with custom parameters
-# Usage: make container-train-custom EPOCHS=5 TRAIN_SIZE=10000
+# Usage: make container-train-custom EPOCHS=5 TRAIN_SIZE=10000 NUM_THREADS=8 DEVICE=cpp_standalone
 container-train-custom:
-        @if [ -z "$(EPOCHS)" ] || [ -z "$(TRAIN_SIZE)" ]; then \
-                echo "$(RED)Error: EPOCHS and TRAIN_SIZE parameters are required. Usage: make container-train-custom EPOCHS=5 TRAIN_SIZE=10000$(NC)"; \
-                exit 1; \
-        fi
-        @echo "$(BLUE)Starting training with $(TRAIN_SIZE) examples for $(EPOCHS) epochs...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --train --data-dir /app/mnist --epochs $(EPOCHS) --train-size $(TRAIN_SIZE) 2> >(grep -v "What's next\|Try Docker Debug" >&2)
-        @echo "$(GREEN)Training completed$(NC)"
+	@if [ -z "$(EPOCHS)" ] || [ -z "$(TRAIN_SIZE)" ]; then \
+		echo "$(RED)Error: EPOCHS and TRAIN_SIZE parameters are required."; \
+		echo "Usage: make container-train-custom EPOCHS=5 TRAIN_SIZE=10000 [NUM_THREADS=8] [DEVICE=runtime|cpp_standalone]$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Starting training with $(TRAIN_SIZE) examples for $(EPOCHS) epochs..."
+	@echo "Using device: $(DEVICE) with $(NUM_THREADS) threads$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --train \
+		--data-dir /app/mnist \
+		--epochs $(EPOCHS) \
+		--train-size $(TRAIN_SIZE) \
+		--num-threads $(NUM_THREADS) \
+		--device $(DEVICE) \
+		2> >(grep -v "What's next\|Try Docker Debug" >&2)
+	@echo "$(GREEN)Training completed$(NC)"
 
 container-test:
-        @echo "$(BLUE)Starting full testing inside container...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
-        @echo "$(GREEN)Testing completed$(NC)"
+	@echo "$(BLUE)Starting full testing inside container...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
+	@echo "$(GREEN)Testing completed$(NC)"
 
 container-test-quick:
-        @echo "$(BLUE)Starting quick test (1000 examples) inside container...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --test-size 1000 --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
-        @echo "$(GREEN)Quick testing completed$(NC)"
+	@echo "$(BLUE)Starting quick test (1000 examples) inside container...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --test-size 1000 --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
+	@echo "$(GREEN)Quick testing completed$(NC)"
 
 container-test-random:
-        @echo "$(BLUE)Starting random test (1000 examples) inside container...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --test-size 1000 --random-subset --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
-        @echo "$(GREEN)Random testing completed$(NC)"
+	@echo "$(BLUE)Starting random test (1000 examples) inside container...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --test-size 1000 --random-subset --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
+	@echo "$(GREEN)Random testing completed$(NC)"
 
 # Custom test with parameters
 # Usage: make container-test-custom TEST_ARGS="--test-size 500 --random-subset"
 container-test-custom:
-        @echo "$(BLUE)Starting custom test inside container...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --data-dir /app/mnist $(TEST_ARGS) 2> >(grep -v "What's next\|Try Docker Debug" >&2)
-        @echo "$(GREEN)Custom testing completed$(NC)"
+	@echo "$(BLUE)Starting custom test inside container...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --data-dir /app/mnist $(TEST_ARGS) 2> >(grep -v "What's next\|Try Docker Debug" >&2)
+	@echo "$(GREEN)Custom testing completed$(NC)"
 
 # Test with specific sample size
 # Usage: make container-test-size SIZE=500
 container-test-size:
-        @if [ -z "$(SIZE)" ]; then \
-                echo "$(RED)Error: SIZE parameter is required. Usage: make container-test-size SIZE=500$(NC)"; \
-                exit 1; \
-        fi
-        @echo "$(BLUE)Starting test with $(SIZE) examples...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --test-size $(SIZE) --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
-        @echo "$(GREEN)Testing with $(SIZE) examples completed$(NC)"
+	@if [ -z "$(SIZE)" ]; then \
+		echo "$(RED)Error: SIZE parameter is required. Usage: make container-test-size SIZE=500$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Starting test with $(SIZE) examples...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --test-size $(SIZE) --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
+	@echo "$(GREEN)Testing with $(SIZE) examples completed$(NC)"
 
 # Test with specific sample size (random subset)
 # Usage: make container-test-size-random SIZE=500
 container-test-size-random:
-        @if [ -z "$(SIZE)" ]; then \
-                echo "$(RED)Error: SIZE parameter is required. Usage: make container-test-size-random SIZE=500$(NC)"; \
-                exit 1; \
-        fi
-        @echo "$(BLUE)Starting test with $(SIZE) random examples...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --test-size $(SIZE) --random-subset --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
-        @echo "$(GREEN)Testing with $(SIZE) random examples completed$(NC)"
+	@if [ -z "$(SIZE)" ]; then \
+		echo "$(RED)Error: SIZE parameter is required. Usage: make container-test-size-random SIZE=500$(NC)"; \
+		exit 1; \
+	fi
+	@echo "$(BLUE)Starting test with $(SIZE) random examples...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --test-size $(SIZE) --random-subset --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
+	@echo "$(GREEN)Testing with $(SIZE) random examples completed$(NC)"
 
 container-train-verbose:
-        @echo "$(BLUE)Starting training inside container with verbose output...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --train --verbose --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
-        @echo "$(GREEN)Training completed$(NC)"
+	@echo "$(BLUE)Starting training inside container with verbose output...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --train --verbose --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
+	@echo "$(GREEN)Training completed$(NC)"
 
 container-test-verbose:
-        @echo "$(BLUE)Starting testing inside container with verbose output...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --verbose --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
-        @echo "$(GREEN)Testing completed$(NC)"
+	@echo "$(BLUE)Starting testing inside container with verbose output...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --test --verbose --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
+	@echo "$(GREEN)Testing completed$(NC)"
 
 # Dataset management commands (for running inside container)
 dataset-download:
-        @echo "$(BLUE)Downloading MNIST dataset inside container...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 scripts/prepare_dataset.py --download-only
-        @echo "$(GREEN)Dataset download completed$(NC)"
+	@echo "$(BLUE)Downloading MNIST dataset inside container...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 scripts/prepare_dataset.py --download-only
+	@echo "$(GREEN)Dataset download completed$(NC)"
 
 dataset-prepare:
-        @echo "$(BLUE)Preparing MNIST dataset inside container...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 scripts/prepare_dataset.py --prepare-only
-        @echo "$(GREEN)Dataset preparation completed$(NC)"
+	@echo "$(BLUE)Preparing MNIST dataset inside container...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 scripts/prepare_dataset.py --prepare-only
+	@echo "$(GREEN)Dataset preparation completed$(NC)"
 
 dataset-status:
-        @echo "$(BLUE)Checking dataset status inside container...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) python3 scripts/prepare_dataset.py --status
-        @echo "$(BLUE)Checking directory structure...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) ls -la /app/mnist/
-        @echo "$(GREEN)Status check completed$(NC)"
+	@echo "$(BLUE)Checking dataset status inside container...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) python3 scripts/prepare_dataset.py --status
+	@echo "$(BLUE)Checking directory structure...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) ls -la /app/mnist/
+	@echo "$(GREEN)Status check completed$(NC)"
 
 dataset-clean:
-        @echo "$(BLUE)Cleaning dataset inside container...$(NC)"
-        @docker exec -it $(CONTAINER_NAME) rm -rf /app/mnist/*
-        @echo "$(GREEN)Dataset cleaned successfully$(NC)"
+	@echo "$(BLUE)Cleaning dataset inside container...$(NC)"
+	@docker exec -it $(CONTAINER_NAME) rm -rf /app/mnist/*
+	@echo "$(GREEN)Dataset cleaned successfully$(NC)"
 
 # Combined commands for convenience
 container-prepare-and-train: dataset-prepare container-train
@@ -160,29 +170,29 @@ container-prepare-and-train: dataset-prepare container-train
 container-full-test: dataset-status container-test
 
 reset-and-test:
-        @echo "$(BLUE)Stopping containers...$(NC)"
-        docker-compose down
-        @echo "$(BLUE)Cleaning MNIST data...$(NC)"
-        rm -rf mnist/*
-        @echo "$(BLUE)Pulling latest changes...$(NC)"
-        git pull
-        @echo "$(BLUE)Rebuilding Docker image...$(NC)"
-        docker-compose build
-        @echo "$(BLUE)Starting containers...$(NC)"
-        docker-compose up -d
-        @echo "$(BLUE)Preparing dataset...$(NC)"
-        @$(MAKE) dataset-download
-        @$(MAKE) dataset-prepare
-        @$(MAKE) dataset-status
-        @echo "$(BLUE)Running tests...$(NC)"
-        @$(MAKE) container-test-size SIZE=300
-        @echo "$(GREEN)Reset and test sequence completed$(NC)"
+	@echo "$(BLUE)Stopping containers...$(NC)"
+	docker-compose down
+	@echo "$(BLUE)Cleaning MNIST data...$(NC)"
+	rm -rf mnist/*
+	@echo "$(BLUE)Pulling latest changes...$(NC)"
+	git pull
+	@echo "$(BLUE)Rebuilding Docker image...$(NC)"
+	docker-compose build
+	@echo "$(BLUE)Starting containers...$(NC)"
+	docker-compose up -d
+	@echo "$(BLUE)Preparing dataset...$(NC)"
+	@$(MAKE) dataset-download
+	@$(MAKE) dataset-prepare
+	@$(MAKE) dataset-status
+	@echo "$(BLUE)Running tests...$(NC)"
+	@$(MAKE) container-test-size SIZE=300
+	@echo "$(GREEN)Reset and test sequence completed$(NC)"
 
 clean:
-        @echo "$(BLUE)Cleaning project...$(NC)"
-        rm -rf $(VENV)
-        rm -rf __pycache__
-        rm -rf .pytest_cache
-        rm -rf *.pyc
-        find . -type d -name "__pycache__" -exec rm -r {} +
-        @echo "$(GREEN)Cleanup completed$(NC)"
+	@echo "$(BLUE)Cleaning project...$(NC)"
+	rm -rf $(VENV)
+	rm -rf __pycache__
+	rm -rf .pytest_cache
+	rm -rf *.pyc
+	find . -type d -name "__pycache__" -exec rm -r {} +
+	@echo "$(GREEN)Cleanup completed$(NC)"

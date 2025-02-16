@@ -86,6 +86,42 @@ The project provides several options for running tests:
   - `--verbose`: Enable verbose output
   - `--data-dir PATH`: Custom data directory path
 
+### Performance Optimization
+
+The simulation supports several performance optimization features:
+
+1. **Default Runtime with Cython** (default):
+   ```bash
+   make container-train-custom EPOCHS=3 TRAIN_SIZE=60000
+   ```
+   - Uses Cython-optimized code
+   - Good balance of setup time and performance
+   - Recommended for quick experiments
+
+2. **Multi-threaded Runtime**:
+   ```bash
+   make container-train-custom EPOCHS=3 TRAIN_SIZE=60000 NUM_THREADS=8
+   ```
+   - Uses OpenMP for parallel processing
+   - Better performance on multi-core systems
+   - Recommended for longer training sessions
+
+3. **C++ Standalone with OpenMP** (fastest):
+   ```bash
+   make container-train-custom EPOCHS=3 TRAIN_SIZE=60000 NUM_THREADS=8 DEVICE=cpp_standalone
+   ```
+   - Compiles simulation to optimized C++ code
+   - Uses OpenMP for maximum parallelization
+   - Longer initial compilation time
+   - Best performance for long simulations
+
+#### Performance Parameters
+
+- `EPOCHS`: Number of training epochs (default: 3)
+- `TRAIN_SIZE`: Number of training examples per epoch (default: 60000, max: 60000)
+- `NUM_THREADS`: Number of OpenMP threads for parallel processing (default: 8)
+- `DEVICE`: Simulation device (`runtime` or `cpp_standalone`, default: runtime)
+
 ### Dataset Management
 
 1. Download MNIST dataset:

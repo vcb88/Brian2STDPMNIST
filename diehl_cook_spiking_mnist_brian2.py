@@ -35,7 +35,13 @@ parser.add_argument('--test-size', type=int, default=10000, help='Number of exam
 parser.add_argument('--random-subset', action='store_true', help='Use random subset of test data instead of first N examples')
 parser.add_argument('--epochs', type=int, default=3, help='Number of training epochs (default: 3)')
 parser.add_argument('--train-size', type=int, default=60000, help='Number of training examples per epoch (default: 60000, max: 60000)')
+parser.add_argument('--num-threads', type=int, default=8, help='Number of threads for parallel processing (default: 8)')
+parser.add_argument('--device', choices=['runtime', 'cpp_standalone'], default='runtime', help='Brian2 device to use (default: runtime)')
 args = parser.parse_args()
+
+# Configure Brian2 preferences for performance
+prefs.devices.cpp_standalone.openmp_threads = args.num_threads
+prefs.codegen.target = 'cython'  # Use cython for faster code generation
 
 # Configure logging
 logging.basicConfig(
@@ -43,6 +49,13 @@ logging.basicConfig(
     format='%(asctime)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Set device
+if args.device == 'cpp_standalone':
+    set_device('cpp_standalone', directory=None)  # None means use temp directory
+    logger.info(f'Using cpp_standalone device with {args.num_threads} OpenMP threads')
+else:
+    logger.info('Using runtime device with Cython optimization')
 
 # specify the location of the MNIST data
 MNIST_data_path = args.data_dir

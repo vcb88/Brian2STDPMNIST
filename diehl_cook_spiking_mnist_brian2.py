@@ -22,6 +22,7 @@ import datetime
 
 from functions.data import get_labeled_data, get_data_subset
 from functions.quick_analysis import quick_analyze
+from functions.diagnostics import diagnostic_report
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='STDP-based MNIST Classification')
@@ -584,10 +585,22 @@ test_duration = time.time() - test_start_time
 logger.info(f'Test run completed in {test_duration:.2f} seconds')
 
 logger.info('Saving and analyzing results')
+
+# Run diagnostic report
+stdp_params = {
+    'tc_pre_ee': tc_pre_ee,
+    'tc_post_1_ee': tc_post_1_ee,
+    'tc_post_2_ee': tc_post_2_ee,
+    'nu_ee_pre': nu_ee_pre,
+    'nu_ee_post': nu_ee_post,
+    'wmax_ee': wmax_ee
+}
 if not test_mode:
     save_theta()
 if not test_mode:
     save_connections()
+
+diagnostic_report(connections, spike_monitors, save_conns, stdp_params)
 else:
     np.save(data_path + 'activity/resultPopVecs' + str(num_examples), result_monitor)
     np.save(data_path + 'activity/inputNumbers' + str(num_examples), input_numbers)

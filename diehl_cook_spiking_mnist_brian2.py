@@ -627,9 +627,6 @@ if spike_counters:
     b2.title('Spike count of population Ae')
 
 
-
-
-
 plot_2d_input_weights()
 
 plt.figure(5)

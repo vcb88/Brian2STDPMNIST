@@ -33,6 +33,8 @@ parser.add_argument('--data-dir', default='./mnist/', help='Directory containing
 parser.add_argument('--save-interval', type=int, default=10000, help='Interval for saving weights')
 parser.add_argument('--test-size', type=int, default=10000, help='Number of examples to use for testing (default: 10000)')
 parser.add_argument('--random-subset', action='store_true', help='Use random subset of test data instead of first N examples')
+parser.add_argument('--epochs', type=int, default=3, help='Number of training epochs (default: 3)')
+parser.add_argument('--train-size', type=int, default=60000, help='Number of training examples per epoch (default: 60000, max: 60000)')
 args = parser.parse_args()
 
 # Configure logging
@@ -272,9 +274,11 @@ if test_mode:
     update_interval = num_examples
 else:
     weight_path = data_path + 'weights/random/'
-    num_examples = 60000 * 3
+    train_size = min(args.train_size, 60000)  # Limit to maximum available examples
+    num_examples = train_size * args.epochs
     use_testing_set = False
     do_plot_performance = True
+    logger.info(f'Training on {train_size} examples for {args.epochs} epochs (total {num_examples} iterations)')
     if num_examples <= 60000:
         record_spikes = True
     else:

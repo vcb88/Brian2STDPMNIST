@@ -8,6 +8,16 @@ VENV_BIN := $(VENV)/bin
 JUPYTER_PORT := 8888
 DOCKER_IMAGE := brian2-stdp-mnist
 DOCKER_TAG := latest
+
+# Training parameters
+EPOCHS ?= 3
+TRAIN_SIZE ?= 60000
+
+# Color output
+RED=\033[0;31m
+GREEN=\033[0;32m
+BLUE=\033[0;34m
+NC=\033[0m # No Color
 CONTAINER_NAME := brian2stdpmnist-notebook-1
 
 # Colors for pretty printing
@@ -52,8 +62,19 @@ docker-stop:
 
 # Commands for running inside container
 container-train:
-        @echo "$(BLUE)Starting training inside container...$(NC)"
+        @echo "$(BLUE)Starting training inside container with default parameters...$(NC)"
         @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --train --data-dir /app/mnist 2> >(grep -v "What's next\|Try Docker Debug" >&2)
+        @echo "$(GREEN)Training completed$(NC)"
+
+# Training with custom parameters
+# Usage: make container-train-custom EPOCHS=5 TRAIN_SIZE=10000
+container-train-custom:
+        @if [ -z "$(EPOCHS)" ] || [ -z "$(TRAIN_SIZE)" ]; then \
+                echo "$(RED)Error: EPOCHS and TRAIN_SIZE parameters are required. Usage: make container-train-custom EPOCHS=5 TRAIN_SIZE=10000$(NC)"; \
+                exit 1; \
+        fi
+        @echo "$(BLUE)Starting training with $(TRAIN_SIZE) examples for $(EPOCHS) epochs...$(NC)"
+        @docker exec -it $(CONTAINER_NAME) python3 diehl_cook_spiking_mnist_brian2.py --train --data-dir /app/mnist --epochs $(EPOCHS) --train-size $(TRAIN_SIZE) 2> >(grep -v "What's next\|Try Docker Debug" >&2)
         @echo "$(GREEN)Training completed$(NC)"
 
 container-test:

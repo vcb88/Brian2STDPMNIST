@@ -315,8 +315,9 @@ ending = ''
 n_input = 784
 n_e = 400
 n_i = n_e
-single_example_time =   0.35 * b2.second #
-resting_time = 0.15 * b2.second
+# Time constants for example presentation and network reset
+single_example_time = 0.35 * b2.second  # unchanged
+resting_time = 0.17 * b2.second        # increased to allow better recovery
 runtime = num_examples * (single_example_time + resting_time)
 if num_examples <= 10000:
     update_interval = num_examples
@@ -337,8 +338,9 @@ v_reset_e = -63. * b2.mV   # increased by 2mV to help with repeated activation
 v_reset_i = -45. * b2.mV   # unchanged
 v_thresh_e = -53. * b2.mV  # lowered by 1mV to make activation easier
 v_thresh_i = -40. * b2.mV  # unchanged
-refrac_e = 5. * b2.ms
-refrac_i = 2. * b2.ms
+# Adjusted refractory periods for better response properties
+refrac_e = 4. * b2.ms  # reduced to allow more frequent activation
+refrac_i = 2. * b2.ms  # unchanged
 
 weight = {}
 delay = {}

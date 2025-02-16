@@ -644,37 +644,47 @@ if spike_counters:
 
 plot_2d_input_weights()
 
+# Plot connection weights
 plt.figure(5)
+plt.subplot(3,1,1)
+try:
+    brian_plot(np.array(connections['XeAe'].w))
+except Exception as e:
+    logger.warning(f"Failed to plot XeAe weights: {e}")
 
-subplot(3,1,1)
+plt.subplot(3,1,2)
+try:
+    brian_plot(np.array(connections['AeAi'].w))
+except Exception as e:
+    logger.warning(f"Failed to plot AeAi weights: {e}")
 
-# The code seems to fail at the following step (NotImplementedError: Do not know how to plot object of type <class 'brian2.core.variables.VariableView'>)
-brian_plot(connections['XeAe'].w)
-subplot(3,1,2)
+plt.subplot(3,1,3)
+try:
+    brian_plot(np.array(connections['AiAe'].w))
+except Exception as e:
+    logger.warning(f"Failed to plot AiAe weights: {e}")
 
-brian_plot(connections['AeAi'].w)
-
-subplot(3,1,3)
-
-brian_plot(connections['AiAe'].w)
-
-
+# Plot connection delays
 plt.figure(6)
+plt.subplot(3,1,1)
+try:
+    brian_plot(np.array(connections['XeAe'].delay))
+except Exception as e:
+    logger.warning(f"Failed to plot XeAe delays: {e}")
 
-subplot(3,1,1)
+plt.subplot(3,1,2)
+try:
+    brian_plot(np.array(connections['AeAi'].delay))
+except Exception as e:
+    logger.warning(f"Failed to plot AeAi delays: {e}")
 
-brian_plot(connections['XeAe'].delay)
-subplot(3,1,2)
+plt.subplot(3,1,3)
+try:
+    brian_plot(np.array(connections['AiAe'].delay))
+except Exception as e:
+    logger.warning(f"Failed to plot AiAe delays: {e}")
 
-brian_plot(connections['AeAi'].delay)
-
-subplot(3,1,3)
-
-brian_plot(connections['AiAe'].delay)
-
-
+# Show all plots
 b2.ioff()
 b2.show()
-
-
 

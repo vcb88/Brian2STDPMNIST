@@ -16,9 +16,21 @@ You have two options to run this project:
 
 ### Option 1: Local Installation
 
-1. Brian2 
-2. MNIST datasets, which can be downloaded from http://yann.lecun.com/exdb/mnist/. 
+1. Python 3.8 or higher
+2. Required Python packages:
+   * Brian2 (2.5.0.1 or higher)
+   * NumPy (1.26.0 or higher)
+   * Matplotlib (3.8.0 or higher)
+   * tqdm (for progress visualization)
+   * typing_extensions (for Python <3.9)
+
+3. MNIST datasets, which can be downloaded from http://yann.lecun.com/exdb/mnist/. 
    * The data set includes four gz files. Extract them after you downloaded them.
+
+You can install the required packages using pip:
+```bash
+pip install -r requirements.txt
+```
 
 ### Option 2: Docker Environment (Recommended)
 

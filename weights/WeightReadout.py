@@ -1,174 +1,229 @@
+#!/usr/bin/env python3
+"""
+Weight visualization tool for analyzing neural network weights.
+Updated for Python 3 compatibility and modern practices.
+"""
+
+import argparse
+import logging
+from pathlib import Path
+from typing import List, Dict, Tuple, Optional, Union
+
 import numpy as np
-from pylab import *
+from numpy.typing import NDArray
+import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+from tqdm import tqdm
 
-ending = ''
-chosenCmap = cm.get_cmap('hot_r') #cm.get_cmap('gist_ncar')
+# Configure logging
+logger = logging.getLogger(__name__)
 
-readoutnames = []
-readoutnames.append('XeAe' + ending)
-# readoutnames.append('YeAe' + ending)
-
-# readoutnames.append('AeAe' + ending)
- 
-# readoutnames.append('AiAe' + ending)
-
-def computePopVector(popArray):
-    size = len(popArray)
-    complex_unit_roots = np.array([np.exp(1j*(2*np.pi/size)*cur_pos) for cur_pos in range(size)])
-    cur_pos = (np.angle(np.sum(popArray * complex_unit_roots)) % (2*np.pi)) / (2*np.pi)
-    return cur_pos
-
-def get_2d_input_weights():
-    weight_matrix = XA_values
-    n_e_sqrt = int(np.sqrt(n_e))
-    n_in_sqrt = int(np.sqrt(n_input))
-    num_values_col = n_e_sqrt*n_in_sqrt
-    num_values_row = num_values_col
-    rearranged_weights = np.zeros((num_values_col, num_values_row))
-        
-    for i in range(n_e_sqrt):
-        for j in range(n_e_sqrt):
-                rearranged_weights[i*n_in_sqrt : (i+1)*n_in_sqrt, j*n_in_sqrt : (j+1)*n_in_sqrt] = \
-                    weight_matrix[:, i + j*n_e_sqrt].reshape((n_in_sqrt, n_in_sqrt))
-    return rearranged_weights
-
-def plot_2d_input_weights():
-    name = 'XeAe'
-    weights = get_2d_input_weights()
-    fig = figure(figsize = (18, 18))
-    im2 = imshow(weights, interpolation = "nearest", vmin = 0, cmap = chosenCmap) #my_cmap
-    colorbar(im2)
-    title('weights of connection' + name)
-    fig.canvas.draw()
-    return im2, fig
-
-bright_grey = '#f4f4f4'    # 
-red   = '#ff0000'  # 
-green   = '#00ff00'  # 
-black   = '#000000'    # 
-my_cmap = matplotlib.colors.LinearSegmentedColormap.from_list('own2',[bright_grey,black])
-
-n_input = 784
-n_e = 400
-
-for name in readoutnames:
-    readout = np.load(name + '.npy')
-    if (name == 'XeAe' + ending):
-        value_arr = np.nan * np.ones((n_input, n_e))
-    else:
-        value_arr = np.nan * np.ones((n_e, n_e))
-    connection_parameters = readout
-    #                 print(connection_parameters)
-    for conn in connection_parameters: 
-    #                     print(conn)
-        # don't need to pass offset as arg, now we store the parent projection
-        src, tgt, value = int(conn[0]), int(conn[1]), conn[2]
-        if np.isnan(value_arr[src, tgt]):
-            value_arr[src, tgt] = value
-        else:
-            value_arr[src, tgt] += value
-    if (name == 'YeAe' + ending):
-        values = np.asarray(value_arr)#.transpose()
-    for i in range(n_e):
-            print(values[i,i])
-    else:
-        values = np.asarray(value_arr)
-        
-    fi = figure()
-#     if name == 'AeAe' + ending or  name == 'HeHe' + ending or  name == 'AeHe' + ending or  name == 'BeHe' + ending \
-#         or  name == 'CeHe' + ending or  name == 'HeAe' + ending or  name == 'HeBe' + ending or  name == 'HeCe' + ending \
-#         or  name == 'AiAe' + ending or  name == 'BiBe' + ending or  name == 'CiCe' + ending or  name == 'HiHe' + ending :
-# #         if name == 'A_H_E_E' or  name == 'B_H_E_E' or  name == 'C_H_E_E':
-# #             popVecs = np.zeros(n_e)
-# #             tempValues = np.nan_to_num(values)
-# #             for x in range(n_e):
-# #                 popVecs[x] = computePopVector(tempValues[:nEH,x].transpose())
-# #             argSortPopVecs = np.argsort(popVecs, axis = 0)
-# #             tempValues = np.asarray([values[:,i] for i in argSortPopVecs])
-# # #             print(popVecs, argSortPopVecs, np.shape(tempValues), np.shape(values))
-# #             im = imshow(tempValues[:n_e, :n_e], interpolation="nearest", cmap=cm.get_cmap(my_cmap))  # copper_r   autumn_r  Greys  my_cmap  gist_rainbow
-# #         else:
-#         im = imshow(values[:n_e, :n_e], interpolation="nearest", cmap=cm.get_cmap(my_cmap))  # copper_r   autumn_r  Greys  my_cmap  gist_rainbow
-#             #     im = imshow(values, interpolation="nearest", cmap=cm.get_cmap('gist_rainbow'))  # copper_r   autumn_r  Greys  my_cmap  gist_rainbow
-#     else:
-#         im = imshow(values, interpolation="nearest", cmap=cm.get_cmap('gist_ncar'), aspect='auto')  # copper_r   autumn_r  Greys  my_cmap  gist_rainbow
-#         # im = imshow(values, interpolation="nearest", cmap=cm.get_cmap('spectral'))  # copper_r   autumn_r  Greys  my_cmap  gist_rainbow
-    im = imshow(values, interpolation="nearest", cmap = chosenCmap, aspect='auto')  # copper_r   autumn_r  Greys  my_cmap  gist_rainbow
-    cbar = colorbar(im)
-    xlabel('Target excitatory neuron number')
-    ylabel('Source excitatory neuron number')
-    title(name)
-    savefig(str(fi.number))
-
-    if name == 'XeAe' + ending:
-        XA_values = np.copy(values)#.transpose()
-    if name == 'YeBe' + ending:
-        YB_values = np.copy(values)#.transpose()
-    if name == 'ZeCe' + ending:
-        ZC_values = np.copy(values)#.transpose()
-    if name == 'AeAe' + ending:
-        AA_values = np.copy(values)
-    if name == 'BeBe' + ending:
-        BB_values = np.copy(values)
-    if name == 'CeCe' + ending:
-        CC_values = np.copy(values)
-    if name == 'AeHe' + ending:
-        AH_values = np.copy(values)
-    if name == 'BeHe' + ending:
-        BH_values = np.copy(values)
-    if name == 'CeHe' + ending:
-        CH_values = np.copy(values)
-    if name == 'HeAe' + ending:
-        HA_values = np.copy(values)
-    if name == 'HeBe' + ending:
-        HB_values = np.copy(values)
-    if name == 'HeCe' + ending:
-        HC_values = np.copy(values)
-
-
-# readout = np.loadtxt('H_A_E_E.txt')
-# for i in nEH:
+class WeightVisualizer:
+    """Class for visualizing neural network weights."""
     
-im, fi = plot_2d_input_weights()
-savefig(str(fi.number))
-# 
-# 
-# from mpl_toolkits.mplot3d import Axes3D
-# point  = np.array([1, 2, 3])
-# normal = np.array([1, 1, 2])
-# 
-# # a plane is a*x+b*y+c*z+d=0
-# # [a,b,c] is the normal. Thus, we have to calculate
-# # d and we're set
-# d = -point.dot(normal)
-# 
-# # create x,y
-# xx, yy = np.meshgrid(range(200), range(200))
-# 
-# # calculate corresponding z
-# z = (1 * xx + 1 * yy) % 200
-# 
-# # plot the surface
-# plt3d = plt.figure().gca(projection='3d')
-# plt3d.plot_surface(xx, yy, z)
+    def __init__(self, 
+                 cmap_name: str = 'hot_r',
+                 fig_size: int = 18,
+                 ending: str = '') -> None:
+        """Initialize the visualizer.
+        
+        Args:
+            cmap_name: Name of the colormap to use
+            fig_size: Size of the figure in inches
+            ending: Optional suffix for weight file names
+        """
+        self.cmap = plt.colormaps[cmap_name]
+        self.fig_size = fig_size
+        self.ending = ending
+        
+        # Network dimensions
+        self.n_input = 784  # 28x28 MNIST images
+        self.n_e = 400      # Number of excitatory neurons
+        
+        # Store weight matrices
+        self.weight_values: Dict[str, NDArray] = {}
+        
+        # Define custom colors
+        self.colors = {
+            'bright_grey': '#f4f4f4',
+            'red': '#ff0000',
+            'green': '#00ff00',
+            'black': '#000000'
+        }
+        
+        # Create custom colormap
+        self.custom_cmap = plt.LinearSegmentedColormap.from_list(
+            'own2',
+            [self.colors['bright_grey'], self.colors['black']]
+        )
 
-XA_sum = np.nansum(XA_values[0:n_input,0:n_e], axis = 0)/n_e
-AA_sum = np.nansum(AA_values[0:n_e,0:n_e], axis = 0)/n_e
+    def compute_pop_vector(self, pop_array: NDArray) -> float:
+        """Compute population vector from array.
+        
+        Args:
+            pop_array: 1D array of population activity
+            
+        Returns:
+            float: Normalized angle of the population vector
+        """
+        size = len(pop_array)
+        complex_unit_roots = np.array([
+            np.exp(1j * (2*np.pi/size) * cur_pos) 
+            for cur_pos in range(size)
+        ])
+        cur_pos = (np.angle(np.sum(pop_array * complex_unit_roots)) % (2*np.pi)) / (2*np.pi)
+        return cur_pos
 
-fi = figure()
-plot(XA_sum, AA_sum, 'w.')
-for label, x, y in zip(range(200), XA_sum, AA_sum):
-    plt.annotate(label, 
-                xy = (x, y), xytext = (-0, 0),
-                textcoords = 'offset points', ha = 'right', va = 'bottom',
-                color = 'k')
-xlabel('summed input from X to A for A neurons')
-ylabel('summed input from A to A for A neurons')
-savefig(str(fi.number))
+    def get_2d_input_weights(self) -> NDArray:
+        """Convert 1D input weights to 2D representation for visualization.
+        
+        Returns:
+            ndarray: 2D array of rearranged weights
+            
+        Raises:
+            KeyError: If XA_values are not loaded
+        """
+        if 'XA' not in self.weight_values:
+            raise KeyError("XA weight values not loaded")
+            
+        weight_matrix = self.weight_values['XA']
+        n_e_sqrt = int(np.sqrt(self.n_e))
+        n_in_sqrt = int(np.sqrt(self.n_input))
+        num_values = n_e_sqrt * n_in_sqrt
+        
+        rearranged_weights = np.zeros((num_values, num_values))
+        
+        for i in range(n_e_sqrt):
+            for j in range(n_e_sqrt):
+                start_i = i * n_in_sqrt
+                end_i = (i + 1) * n_in_sqrt
+                start_j = j * n_in_sqrt
+                end_j = (j + 1) * n_in_sqrt
+                
+                rearranged_weights[start_i:end_i, start_j:end_j] = \
+                    weight_matrix[:, i + j*n_e_sqrt].reshape((n_in_sqrt, n_in_sqrt))
+        
+        return rearranged_weights
 
+    def plot_2d_input_weights(self, save_path: Optional[Path] = None) -> Tuple[plt.Figure, plt.Axes]:
+        """Plot 2D visualization of input weights.
+        
+        Args:
+            save_path: Optional path to save the plot
+            
+        Returns:
+            tuple: (figure object, axes object)
+        """
+        weights = self.get_2d_input_weights()
+        
+        fig, ax = plt.subplots(figsize=(self.fig_size, self.fig_size))
+        im = ax.imshow(weights, interpolation="nearest", vmin=0, cmap=self.cmap)
+        plt.colorbar(im)
+        ax.set_title('XeAe Connection Weights')
+        
+        if save_path:
+            plt.savefig(save_path)
+            logger.info(f"Saved weight plot to {save_path}")
+        
+        return fig, ax
 
+    def load_weights(self, data_path: Union[str, Path]) -> None:
+        """Load and process weight files.
+        
+        Args:
+            data_path: Path to the directory containing weight files
+            
+        Raises:
+            FileNotFoundError: If weight files are not found
+        """
+        data_path = Path(data_path)
+        readout_names = ['XeAe' + self.ending]
+        
+        for name in tqdm(readout_names, desc="Loading weights"):
+            try:
+                weight_file = data_path / f"{name}.npy"
+                if not weight_file.exists():
+                    raise FileNotFoundError(f"Weight file not found: {weight_file}")
+                
+                readout = np.load(weight_file)
+                
+                # Initialize weight matrix
+                if name == 'XeAe' + self.ending:
+                    value_arr = np.nan * np.ones((self.n_input, self.n_e))
+                else:
+                    value_arr = np.nan * np.ones((self.n_e, self.n_e))
+                
+                # Process connection parameters
+                for conn in readout:
+                    src, tgt = int(conn[0]), int(conn[1])
+                    value = float(conn[2])
+                    
+                    if np.isnan(value_arr[src, tgt]):
+                        value_arr[src, tgt] = value
+                    else:
+                        value_arr[src, tgt] += value
+                
+                # Store processed weights
+                self.weight_values[name] = np.asarray(value_arr)
+                
+                # Create visualization
+                fig = plt.figure()
+                plt.pcolor(value_arr)
+                plt.colorbar()
+                plt.title(name)
+                plt.savefig(data_path / f"{name}_plot.png")
+                plt.close(fig)
+                
+                logger.info(f"Processed weight file: {name}")
+                
+            except Exception as e:
+                logger.error(f"Error processing {name}: {e}")
+                raise
 
-print('done')
+def main():
+    """Main function for command-line usage."""
+    parser = argparse.ArgumentParser(description='Neural network weight visualization tool')
+    parser.add_argument('--data-path', type=str, default='./weights',
+                       help='Path to weight files directory')
+    parser.add_argument('--cmap', type=str, default='hot_r',
+                       help='Matplotlib colormap name')
+    parser.add_argument('--fig-size', type=int, default=18,
+                       help='Figure size in inches')
+    parser.add_argument('--save-dir', type=str, default='./plots',
+                       help='Directory to save plots')
+    args = parser.parse_args()
+    
+    # Configure logging
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(levelname)s - %(message)s'
+    )
+    
+    try:
+        # Create save directory
+        save_dir = Path(args.save_dir)
+        save_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Initialize visualizer
+        visualizer = WeightVisualizer(
+            cmap_name=args.cmap,
+            fig_size=args.fig_size
+        )
+        
+        # Load and process weights
+        visualizer.load_weights(args.data_path)
+        
+        # Create and save plots
+        fig, _ = visualizer.plot_2d_input_weights(
+            save_path=save_dir / "input_weights_2d.png"
+        )
+        plt.close(fig)
+        
+        logger.info("Weight visualization completed successfully")
+        
+    except Exception as e:
+        logger.error(f"Error during visualization: {e}")
+        raise
 
-show()
+if __name__ == "__main__":
+    main()

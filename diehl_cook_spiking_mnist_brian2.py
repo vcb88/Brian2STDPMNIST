@@ -595,23 +595,25 @@ stdp_params = {
     'nu_ee_post': nu_ee_post,
     'wmax_ee': wmax_ee
 }
-if not test_mode:
-    save_theta()
-if not test_mode:
-    save_connections()
-
-diagnostic_report(connections, spike_monitors, save_conns, stdp_params)
-else:
+# Save results and perform diagnostics
+if test_mode:
+    # Save test results
     np.save(data_path + 'activity/resultPopVecs' + str(num_examples), result_monitor)
     np.save(data_path + 'activity/inputNumbers' + str(num_examples), input_numbers)
     
-    # Perform quick analysis if in test mode
-    if test_mode:
-        logger.info('Performing quick analysis of test results...')
-        accuracy, per_digit_acc = quick_analyze(
-            data_path + 'activity/inputNumbers' + str(num_examples) + '.npy',
-            data_path + 'activity/resultPopVecs' + str(num_examples) + '.npy'
-        )
+    # Run analysis
+    logger.info('Performing quick analysis of test results...')
+    accuracy, per_digit_acc = quick_analyze(
+        data_path + 'activity/inputNumbers' + str(num_examples) + '.npy',
+        data_path + 'activity/resultPopVecs' + str(num_examples) + '.npy'
+    )
+else:
+    # Save training results
+    save_theta()
+    save_connections()
+
+# Always run diagnostics
+diagnostic_report(connections, spike_monitors, save_conns, stdp_params)
 
 
 #------------------------------------------------------------------------------

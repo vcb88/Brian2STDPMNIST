@@ -50,7 +50,28 @@ test_mode = args.test  # Set test_mode based on command line argument
 # functions
 #------------------------------------------------------------------------------
 
+def create_initial_weight_matrix(n_src, n_tgt, fileName):
+    logger.info(f'Creating initial weight matrix for {fileName}')
+    if 'XeAe' in fileName:
+        weight_matrix = np.random.random((n_src, n_tgt)) * 0.3
+    elif 'AeAi' in fileName:
+        weight_matrix = np.ones((n_src, n_tgt)) * 10.4
+    elif 'AiAe' in fileName:
+        weight_matrix = np.ones((n_src, n_tgt)) * 17.0
+    else:
+        weight_matrix = np.random.random((n_src, n_tgt)) * 0.3
+    
+    indices = np.nonzero(weight_matrix)
+    values = weight_matrix[indices]
+    sparse_weights = list(zip(indices[0], indices[1], values))
+    
+    os.makedirs(os.path.dirname(fileName), exist_ok=True)
+    np.save(fileName, sparse_weights)
+    logger.info(f'Saved initial weights to {fileName}')
+    return weight_matrix
+
 def get_matrix_from_file(fileName):
+    logger.info(f'Loading weight matrix from: {fileName}')
     offset = len(ending) + 4
     if fileName[-4-offset] == 'X':
         n_src = n_input
@@ -63,12 +84,16 @@ def get_matrix_from_file(fileName):
         n_tgt = n_e
     else:
         n_tgt = n_i
-    readout = np.load(fileName)
-    print(readout.shape, fileName)
-    value_arr = np.zeros((n_src, n_tgt))
-    if not readout.shape == (0,):
-        value_arr[np.int32(readout[:,0]), np.int32(readout[:,1])] = readout[:,2]
-    return value_arr
+    try:
+        readout = np.load(fileName)
+        logger.info(f'Loaded weights from {fileName}, shape: {readout.shape}')
+        value_arr = np.zeros((n_src, n_tgt))
+        if not readout.shape == (0,):
+            value_arr[np.int32(readout[:,0]), np.int32(readout[:,1])] = readout[:,2]
+        return value_arr
+    except FileNotFoundError:
+        logger.info(f'Weight file {fileName} not found, creating initial weights')
+        return create_initial_weight_matrix(n_src, n_tgt, fileName)
 
 
 def save_connections(ending = ''):
@@ -246,7 +271,7 @@ if test_mode:
     logger.info(f'Testing on {num_examples} examples' + (' (random subset)' if args.random_subset else ''))
     update_interval = num_examples
 else:
-    weight_path = data_path + 'random/'
+    weight_path = data_path + 'weights/random/'
     num_examples = 60000 * 3
     use_testing_set = False
     do_plot_performance = True

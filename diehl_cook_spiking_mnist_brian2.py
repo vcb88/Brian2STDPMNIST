@@ -563,11 +563,12 @@ while j < (int(num_examples)):
             input_numbers[j] = training['y'][j%60000][0]
         outputNumbers[j,:] = get_recognized_number_ranking(assignments, result_monitor[j%update_interval,:])
         if j % 100 == 0 and j > 0:
-            print('runs done:', j, 'of', int(num_examples))
+            logger.info('Runs completed: %d of %d', j, int(num_examples))
         if j % update_interval == 0 and j > 0:
             if do_plot_performance:
                 unused, performance = update_performance_plot(performance_monitor, performance, j, fig_performance)
-                print('Classification performance', performance[:(j/float(update_interval))+1])
+                logger.info('Classification performance: %s', 
+                             performance[:int(j/update_interval)+1])
         for i,name in enumerate(input_population_names):
             input_groups[name+'e'].rates = 0 * Hz
         net.run(resting_time)

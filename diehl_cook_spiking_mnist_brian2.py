@@ -331,13 +331,13 @@ else:
     save_connections_interval = 10000
     update_interval = 10000
 
-# Slightly adjusted threshold values for excitatory neurons
-v_rest_e = -65. * b2.mV    # unchanged
-v_rest_i = -60. * b2.mV    # unchanged
-v_reset_e = -63. * b2.mV   # increased by 2mV to help with repeated activation
-v_reset_i = -45. * b2.mV   # unchanged
-v_thresh_e = -53. * b2.mV  # lowered by 1mV to make activation easier
-v_thresh_i = -40. * b2.mV  # unchanged
+# Neuronal voltage parameters
+v_rest_e = -65. * b2.mV
+v_rest_i = -60. * b2.mV
+v_reset_e = -65. * b2.mV
+v_reset_i = -45. * b2.mV
+v_thresh_e = -52. * b2.mV
+v_thresh_i = -40. * b2.mV
 # Adjusted refractory periods for better response properties
 refrac_e = 4. * b2.ms  # reduced to allow more frequent activation
 refrac_i = 2. * b2.ms  # unchanged
@@ -381,8 +381,8 @@ else:
     timer = 0*ms
     '''
 offset = 20.0*b2.mV
-# Add homeostatic threshold adjustment
-v_thresh_e_str = '(v>(theta - offset + v_thresh_e - 2*mV*int(theta>0.021*volt))) and (timer>refrac_e)'
+# Standard threshold condition
+v_thresh_e_str = '(v>(theta - offset + v_thresh_e)) and (timer>refrac_e)'
 v_thresh_i_str = 'v>v_thresh_i'
 v_reset_i_str = 'v=v_reset_i'
 

@@ -371,7 +371,7 @@ if test_mode:
 else:
     # Threshold adaptation parameters
     tc_theta = 1e7 * b2.ms
-    theta_plus_e = 0.08 * b2.mV  # Further increased from 0.07mV to reduce inactive neurons
+    theta_plus_e = 0.09 * b2.mV  # Further increased from 0.08mV to optimize neuron activation
     
     # Simple reset with theta modification
     scr_e = '''

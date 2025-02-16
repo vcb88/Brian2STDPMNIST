@@ -367,16 +367,16 @@ STDP_offset = 0.4
 if test_mode:
     scr_e = 'v = v_reset_e; timer = 0*ms'
 else:
-    # Faster threshold decay for better adaptation
-    tc_theta = 1e6 * b2.ms  # 10x faster decay
+    # Return to original decay time constant
+    tc_theta = 1e7 * b2.ms
     
-    # Adaptive threshold increase based on recent activity
-    theta_plus_e = 0.05 * b2.mV  # Base increase
+    # Base threshold increase
+    theta_plus_e = 0.05 * b2.mV
     
-    # More sophisticated reset that includes theta adjustment
+    # More sophisticated reset with bounded theta
     scr_e = '''
     v = v_reset_e
-    theta += theta_plus_e * (1 + 0.1 * int(theta < 0.020*volt))  # Extra boost for low theta
+    theta = clip(theta + theta_plus_e * (1 + 0.05 * int(theta < 0.019*volt)), 0.015*volt, 0.025*volt)
     timer = 0*ms
     '''
 offset = 20.0*b2.mV

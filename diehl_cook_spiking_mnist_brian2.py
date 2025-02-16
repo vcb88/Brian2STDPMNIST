@@ -369,11 +369,11 @@ STDP_offset = 0.4
 if test_mode:
     scr_e = 'v = v_reset_e; timer = 0*ms'
 else:
-    # Original parameters
+    # Threshold adaptation parameters
     tc_theta = 1e7 * b2.ms
-    theta_plus_e = 0.05 * b2.mV
+    theta_plus_e = 0.06 * b2.mV  # Increased from 0.05mV for stronger adaptation
     
-    # Simple reset without direct theta modification
+    # Simple reset with theta modification
     scr_e = '''
     v = v_reset_e
     theta += theta_plus_e

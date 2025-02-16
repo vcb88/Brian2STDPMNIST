@@ -614,7 +614,7 @@ else:
     save_connections()
 
 # Always run diagnostics
-diagnostic_report(connections, spike_monitors, save_conns, stdp_params)
+diagnostic_report(connections, spike_monitors, save_conns, stdp_params, neuron_groups)
 
 
 #------------------------------------------------------------------------------

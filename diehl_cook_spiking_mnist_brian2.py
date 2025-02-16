@@ -268,7 +268,7 @@ def get_new_assignments(result_monitor, input_numbers):
 start = time.time()
 training = get_labeled_data('training', bTrain=True, MNIST_data_path=MNIST_data_path)
 end = time.time()
-print('time needed to load training set:', end - start)
+logger.info('Time needed to load training set: %.2fs', end - start)
 
 start = time.time()
 full_testing = get_labeled_data('testing', bTrain=False, MNIST_data_path=MNIST_data_path)

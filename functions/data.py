@@ -2,12 +2,14 @@
 A variety of functions for managing the loading of MNIST data.
 '''
 import random
-
 import os
 import pickle
+import logging
 import numpy as np
 from struct import unpack
 from tqdm import tqdm
+
+logger = logging.getLogger(__name__)
 
 def get_labeled_data(picklename, bTrain = True, MNIST_data_path='./mnist'):
     """ Read input-vector (image) and target class (label, 0-9) and return
@@ -41,7 +43,7 @@ def get_labeled_data(picklename, bTrain = True, MNIST_data_path='./mnist'):
         # Get the data
         x = np.zeros((N, rows, cols), dtype=np.uint8)  # Initialize numpy array
         y = np.zeros((N, 1), dtype=np.uint8)  # Initialize numpy array
-        print('Unpacking {} images...'.format('training' if bTrain else 'test'))
+        logger.info('Unpacking %s images...', 'training' if bTrain else 'test')
         for i in tqdm(range(N)):
             x[i] = [[unpack('>B', images.read(1))[0] for unused_col in range(cols)]  for unused_row in range(rows) ]
             y[i] = unpack('>B', labels.read(1))[0]

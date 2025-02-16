@@ -1,13 +1,27 @@
-import numpy as np
+"""
+MNIST classification test script using trained SNN.
+Updated for Python 3 compatibility.
+"""
+
+import logging
+import os
 import time
-import os.path
-import scipy
+from pathlib import Path
+
+import numpy as np
 from brian2 import *
 
 from functions.data import get_labeled_data
 
-# specify the location of the MNIST data
-MNIST_data_path = './mnist/'
+# Configure logging
+logger = logging.getLogger(__name__)
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
+
+# Paths
+MNIST_data_path = Path('./mnist/')
 
 def get_recognized_number_ranking(assignments, spike_rates):
     summed_rates = [0] * 10
@@ -32,14 +46,15 @@ def get_new_assignments(result_monitor, input_numbers):
                 assignments[i] = j
     return assignments
 
-print('Loading test data...')
-testing = get_labeled_data(MNIST_data_path + 'testing', bTrain = False)
+# Load test data
+logger.info('Loading test data...')
+testing = get_labeled_data(MNIST_data_path / 'testing', bTrain=False)
 
 # Parameters
 test_mode = True
 np.random.seed(0)
-data_path = './'
-weight_path = data_path + 'weights/'
+data_path = Path('./')
+weight_path = data_path / 'weights'
 num_examples = 10000
 use_testing_set = True
 record_spikes = True
@@ -117,21 +132,21 @@ neuron_groups['i'] = NeuronGroup(n_i*len(population_names), neuron_eqs_i,
 
 # Create network population and recurrent connections
 for subgroup_n, name in enumerate(population_names):
-    print('create neuron group', name)
+    logger.info(f'Creating neuron group {name}')
     
     neuron_groups[name+'e'] = neuron_groups['e'][subgroup_n*n_e:(subgroup_n+1)*n_e]
     neuron_groups[name+'i'] = neuron_groups['i'][subgroup_n*n_i:(subgroup_n+1)*n_e]
     
     neuron_groups[name+'e'].v = v_rest_e - 40. * mV
     neuron_groups[name+'i'].v = v_rest_i - 40. * mV
-    neuron_groups['e'].theta = np.load(weight_path + 'theta_' + name + '.npy') * volt
+    neuron_groups['e'].theta = np.load(weight_path / f'theta_{name}.npy') * volt
     
-    print('create recurrent connections')
+    logger.info('Creating recurrent connections')
     for conn_type in recurrent_conn_names:
         connName = name+conn_type[0]+name+conn_type[1]
-        weightMatrix = np.load(weight_path + '../random/' + connName + '.npy')
+        weightMatrix = np.load(weight_path / '../random' / f'{connName}.npy')
         model = 'w : 1'
-        pre = 'g%s_post += w' % conn_type[0]
+        pre = f'g{conn_type[0]}_post += w'
         post = ''
         connections[connName] = Synapses(neuron_groups[connName[0:2]], 
                                        neuron_groups[connName[2:4]],
@@ -140,7 +155,7 @@ for subgroup_n, name in enumerate(population_names):
         connections[connName].w = weightMatrix[connections[connName].i, 
                                              connections[connName].j]
     
-    print('create monitors for', name)
+    logger.info(f'Creating monitors for {name}')
     rate_monitors[name+'e'] = PopulationRateMonitor(neuron_groups[name+'e'])
     rate_monitors[name+'i'] = PopulationRateMonitor(neuron_groups[name+'i'])
     spike_counters[name+'e'] = SpikeMonitor(neuron_groups[name+'e'])
@@ -155,12 +170,12 @@ for i,name in enumerate(input_population_names):
     rate_monitors[name+'e'] = PopulationRateMonitor(input_groups[name+'e'])
 
 for name in input_connection_names:
-    print('create connections between', name[0], 'and', name[1])
+    logger.info(f'Creating connections between {name[0]} and {name[1]}')
     for connType in input_conn_names:
         connName = name[0] + connType[0] + name[1] + connType[1]
-        weightMatrix = np.load(weight_path + connName + '.npy')
+        weightMatrix = np.load(weight_path / f'{connName}.npy')
         model = 'w : 1'
-        pre = 'g%s_post += w' % connType[0]
+        pre = f'g{connType[0]}_post += w'
         post = ''
         
         connections[connName] = Synapses(input_groups[connName[0:2]], 
@@ -174,7 +189,7 @@ for name in input_connection_names:
         connections[connName].w = weightMatrix[connections[connName].i, 
                                              connections[connName].j]
 
-print('Setting up simulation...')
+logger.info('Setting up simulation...')
 net = Network()
 for obj_list in [neuron_groups, input_groups, connections, rate_monitors,
         spike_monitors, spike_counters]:
@@ -192,7 +207,7 @@ num_retries = 0
 num_failures = 0
 num_successes = 0
 
-print('Start testing')
+logger.info('Starting testing...')
 start_time = time.time()
 while j < (int(num_examples)):
     if use_testing_set:
@@ -208,8 +223,8 @@ while j < (int(num_examples)):
         num_retries += 1
         input_intensity += 1
         j -= 1
-        print('Number of spikes:', sum(current_spike_count))
-        print('Retrying with intensity:', input_intensity)
+        logger.warning(f'Number of spikes: {sum(current_spike_count)}')
+        logger.warning(f'Retrying with intensity: {input_intensity}')
     else:
         num_successes += 1
         if j % update_interval == 0 and j > 0:
@@ -220,13 +235,18 @@ while j < (int(num_examples)):
                                                          result_monitor[j%update_interval,:])
         
         if j % 100 == 0 and j > 0:
-            print('Example %d' % j)
-            print('Current recognition rate: %.4f' % (np.mean(outputNumbers[j-100:j,0] == input_numbers[j-100:j])*100))
+            recognition_rate = np.mean(outputNumbers[j-100:j,0] == input_numbers[j-100:j]) * 100
+            logger.info(f'Example {j}')
+            logger.info(f'Current recognition rate: {recognition_rate:.2f}%')
     
     j += 1
 
 end_time = time.time()
-print('Testing completed')
-print('Success rate: %.4f' % (num_successes/(num_successes+num_failures)*100))
-print('Average recognition rate: %.4f' % (np.mean(outputNumbers[:,0] == input_numbers)*100))
-print('Total time: %.2f seconds' % (end_time - start_time))
+logger.info('Testing completed')
+success_rate = (num_successes/(num_successes+num_failures)) * 100
+recognition_rate = np.mean(outputNumbers[:,0] == input_numbers) * 100
+duration = end_time - start_time
+
+logger.info(f'Success rate: {success_rate:.2f}%')
+logger.info(f'Average recognition rate: {recognition_rate:.2f}%')
+logger.info(f'Total time: {duration:.2f} seconds')

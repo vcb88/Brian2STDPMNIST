@@ -6,20 +6,22 @@ This document explains how to interpret the results generated during network tra
 
 ```
 results/
-├── input_weights_evolution/     # Weight evolution during training
-├── weight_maps/                # Final weight maps
-├── confusion_matrices/         # Classification performance
-├── performance_plots/          # Accuracy over time
-└── neuron_assignments/         # Neuron specialization maps
+├── confusion_matrix.png        # Classification performance matrix
+└── accuracy_per_digit.png      # Per-digit accuracy analysis
+
+Additional files that may be generated during training:
+├── input_weights_evolution/    # Weight evolution during training
+├── weight_maps/               # Final weight maps
+└── neuron_assignments/        # Neuron specialization maps
 ```
 
 ## Weight Visualizations
 
 ### Input Weight Maps (`weight_maps/*.png`)
 
-![Weight Map Example](../images/weight_map_example.png)
+### Weight Evolution Images
 
-These images show the learned input weights for each excitatory neuron:
+When generated, these images show the learned input weights for each excitatory neuron:
 - **Format**: 20x20 grid of 28x28 patches
 - **Interpretation**:
   - Each patch represents weights for one excitatory neuron
@@ -39,9 +41,9 @@ These images show how weights evolve during training:
 
 ## Performance Analysis
 
-### Confusion Matrix (`confusion_matrices/confusion_matrix_*.png`)
+### Confusion Matrix (`confusion_matrix.png`)
 
-![Confusion Matrix Example](../images/confusion_matrix_example.png)
+![Confusion Matrix Example](../images/confusion_matrix.png)
 
 Represents classification performance:
 - **Rows**: True labels (0-9)
@@ -52,7 +54,9 @@ Represents classification performance:
   - Off-diagonal elements: Misclassifications
   - Brighter colors indicate higher counts
 
-### Performance Plot (`performance_plots/accuracy_*.png`)
+### Performance Plot (`accuracy_per_digit.png`)
+
+![Accuracy Per Digit](../images/accuracy_per_digit.png)
 
 Shows classification accuracy over time:
 - **X-axis**: Training/testing iterations

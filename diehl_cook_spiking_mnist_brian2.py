@@ -367,20 +367,19 @@ STDP_offset = 0.4
 if test_mode:
     scr_e = 'v = v_reset_e; timer = 0*ms'
 else:
-    # Return to original decay time constant
+    # Original parameters
     tc_theta = 1e7 * b2.ms
-    
-    # Base threshold increase
     theta_plus_e = 0.05 * b2.mV
     
-    # More sophisticated reset with bounded theta
+    # Simple reset without direct theta modification
     scr_e = '''
     v = v_reset_e
-    theta = clip(theta + theta_plus_e * (1 + 0.05 * int(theta < 0.019*volt)), 0.015*volt, 0.025*volt)
+    theta += theta_plus_e
     timer = 0*ms
     '''
 offset = 20.0*b2.mV
-v_thresh_e_str = '(v>(theta - offset + v_thresh_e)) and (timer>refrac_e)'
+# Add homeostatic threshold adjustment
+v_thresh_e_str = '(v>(theta - offset + v_thresh_e - 2*mV*int(theta>0.021*volt))) and (timer>refrac_e)'
 v_thresh_i_str = 'v>v_thresh_i'
 v_reset_i_str = 'v=v_reset_i'
 
@@ -444,11 +443,11 @@ for subgroup_n, name in enumerate(population_names):
         logger.info(f'Loading theta weights from: {theta_path}')
         neuron_groups['e'].theta = np.load(theta_path) * b2.volt
     else:
-        # Initialize theta with controlled noise
-        base_theta = 20.0 * b2.mV
-        noise_scale = 0.5 * b2.mV  # 0.5mV of noise
+        # Initialize theta slightly below homeostatic threshold
+        base_theta = 19.0 * b2.mV
+        noise_scale = 0.2 * b2.mV  # Smaller noise for more uniform start
         theta_values = np.random.normal(float(base_theta), float(noise_scale), n_e)
-        neuron_groups['e'].theta = theta_values * b2.volt  # Convert to volts with units
+        neuron_groups['e'].theta = theta_values * b2.volt
 
     print('create recurrent connections')
     for conn_type in recurrent_conn_names:

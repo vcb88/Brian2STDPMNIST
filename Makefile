@@ -163,7 +163,7 @@ reset-and-test:
 	@$(MAKE) dataset-prepare
 	@$(MAKE) dataset-status
 	@echo "$(BLUE)Running tests...$(NC)"
-	@$(MAKE) container-test
+	@$(MAKE) container-test-size SIZE=300
 	@echo "$(GREEN)Reset and test sequence completed$(NC)"
 
 clean:

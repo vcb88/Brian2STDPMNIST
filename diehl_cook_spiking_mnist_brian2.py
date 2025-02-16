@@ -646,44 +646,65 @@ if spike_counters:
 plot_2d_input_weights()
 
 # Plot connection weights
-plt.figure(5)
+# Plot connection weights
+plt.figure(5, figsize=(10, 12))
 plt.subplot(3,1,1)
 try:
-    brian_plot(np.array(connections['XeAe'].w))
+    w = np.array(connections['XeAe'].w)
+    plt.imshow(w.reshape(n_input, n_e), aspect='auto', cmap='viridis')
+    plt.colorbar(label='Weight')
+    plt.title('XeAe weights')
 except Exception as e:
     logger.warning(f"Failed to plot XeAe weights: {e}")
 
 plt.subplot(3,1,2)
 try:
-    brian_plot(np.array(connections['AeAi'].w))
+    w = np.array(connections['AeAi'].w)
+    plt.imshow(w.reshape(n_e, n_i), aspect='auto', cmap='viridis')
+    plt.colorbar(label='Weight')
+    plt.title('AeAi weights')
 except Exception as e:
     logger.warning(f"Failed to plot AeAi weights: {e}")
 
 plt.subplot(3,1,3)
 try:
-    brian_plot(np.array(connections['AiAe'].w))
+    w = np.array(connections['AiAe'].w)
+    plt.imshow(w.reshape(n_i, n_e), aspect='auto', cmap='viridis')
+    plt.colorbar(label='Weight')
+    plt.title('AiAe weights')
 except Exception as e:
     logger.warning(f"Failed to plot AiAe weights: {e}")
+plt.tight_layout()
 
 # Plot connection delays
-plt.figure(6)
+plt.figure(6, figsize=(10, 12))
 plt.subplot(3,1,1)
 try:
-    brian_plot(np.array(connections['XeAe'].delay))
+    d = np.array(connections['XeAe'].delay)
+    plt.imshow(d.reshape(n_input, n_e), aspect='auto', cmap='viridis')
+    plt.colorbar(label='Delay (ms)')
+    plt.title('XeAe delays')
 except Exception as e:
     logger.warning(f"Failed to plot XeAe delays: {e}")
 
 plt.subplot(3,1,2)
 try:
-    brian_plot(np.array(connections['AeAi'].delay))
+    d = np.array(connections['AeAi'].delay)
+    plt.imshow(d.reshape(n_e, n_i), aspect='auto', cmap='viridis')
+    plt.colorbar(label='Delay (ms)')
+    plt.title('AeAi delays')
 except Exception as e:
     logger.warning(f"Failed to plot AeAi delays: {e}")
 
 plt.subplot(3,1,3)
 try:
-    brian_plot(np.array(connections['AiAe'].delay))
+    d = np.array(connections['AiAe'].delay)
+    plt.imshow(d.reshape(n_i, n_e), aspect='auto', cmap='viridis')
+    plt.colorbar(label='Delay (ms)')
+    plt.title('AiAe delays')
 except Exception as e:
     logger.warning(f"Failed to plot AiAe delays: {e}")
+plt.tight_layout()
 
 # Show all plots
 b2.ioff()

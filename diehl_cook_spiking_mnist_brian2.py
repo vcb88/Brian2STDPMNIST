@@ -16,6 +16,7 @@ from brian2 import *
 import os
 import brian2 as b2
 from brian2tools import *
+import matplotlib.pyplot as plt
 from tqdm import tqdm
 import datetime
 
@@ -119,7 +120,7 @@ def plot_2d_input_weights():
     name = 'XeAe'
     weights = get_2d_input_weights()
     fig = b2.figure(fig_num, figsize = (18, 18))
-    im2 = b2.imshow(weights, interpolation = "nearest", vmin = 0, vmax = wmax_ee, cmap = cmap.get_cmap('hot_r'))
+    im2 = b2.imshow(weights, interpolation = "nearest", vmin = 0, vmax = wmax_ee, cmap = plt.colormaps['hot_r'])
     b2.colorbar(im2)
     b2.title('weights of connection' + name)
     fig.canvas.draw()
@@ -167,6 +168,32 @@ def get_recognized_number_ranking(assignments, spike_rates):
         if num_assignments[i] > 0:
             summed_rates[i] = np.sum(spike_rates[assignments == i]) / num_assignments[i]
     return np.argsort(summed_rates)[::-1]
+
+def save_results(accuracy_fig, confusion_fig):
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    
+    accuracy_path = f'results/accuracy_per_digit_{timestamp}.png'
+    confusion_path = f'results/confusion_matrix_{timestamp}.png'
+    
+    logger.info(f'Saving accuracy plot to: {accuracy_path}')
+    accuracy_fig.savefig(accuracy_path)
+    
+    logger.info(f'Saving confusion matrix to: {confusion_path}')
+    confusion_fig.savefig(confusion_path)
+    
+    # Create symbolic links for latest results
+    latest_accuracy = 'results/accuracy_per_digit.png'
+    latest_confusion = 'results/confusion_matrix.png'
+    
+    if os.path.exists(latest_accuracy):
+        os.remove(latest_accuracy)
+    if os.path.exists(latest_confusion):
+        os.remove(latest_confusion)
+        
+    os.symlink(os.path.basename(accuracy_path), latest_accuracy)
+    os.symlink(os.path.basename(confusion_path), latest_confusion)
+    
+    logger.info('Results saved successfully')
 
 def get_new_assignments(result_monitor, input_numbers):
     assignments = np.zeros(n_e)
@@ -427,6 +454,10 @@ for obj_list in [neuron_groups, input_groups, connections, rate_monitors,
         net.add(obj_list[key])
 logger.info(f'Network built with {len(neuron_groups)} neuron groups, {len(connections)} connections')
 
+test_start_time = time.time()
+logger.info(f'Starting test run at {datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")}')
+logger.info(f'Testing {num_examples} examples')
+
 previous_spike_count = np.zeros(n_e)
 assignments = np.zeros(n_e)
 input_numbers = [0] * num_examples
@@ -441,6 +472,8 @@ for i,name in enumerate(input_population_names):
 net.run(0*second)
 j = 0
 while j < (int(num_examples)):
+    test_iteration_start = datetime.datetime.now()
+    logger.info(f'Starting test {j+1}/{num_examples} at {test_iteration_start.strftime("%Y-%m-%d %H:%M:%S")}')
     if test_mode:
         if use_testing_set:
             spike_rates = testing['x'][j%10000,:,:].reshape((n_input)) / 8. *  input_intensity
@@ -485,12 +518,18 @@ while j < (int(num_examples)):
             input_groups[name+'e'].rates = 0 * Hz
         net.run(resting_time)
         input_intensity = start_input_intensity
+        test_iteration_end = datetime.datetime.now()
+        test_iteration_duration = (test_iteration_end - test_iteration_start).total_seconds()
+        logger.info(f'Test {j+1} completed in {test_iteration_duration:.2f} seconds')
         j += 1
 
 
 #------------------------------------------------------------------------------
 # save and analyze results
 #------------------------------------------------------------------------------
+test_duration = time.time() - test_start_time
+logger.info(f'Test run completed in {test_duration:.2f} seconds')
+
 logger.info('Saving and analyzing results')
 if not test_mode:
     save_theta()

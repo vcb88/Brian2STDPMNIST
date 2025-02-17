@@ -23,9 +23,13 @@ def analyze_temporal_patterns(spike_monitors, time_window: float = None) -> Dict
         # Get spike times and indices
         if not isinstance(spike_monitors, dict) or 'Ae' not in spike_monitors:
             raise ValueError("Invalid spike monitors")
-            
-        spike_times = np.array(spike_monitors['Ae'].t_)  # Get times in seconds
-        spike_indices = np.array(spike_monitors['Ae'].i)
+        
+        # Convert to numpy arrays, ensuring they are 1D
+        spike_times = np.atleast_1d(np.array(spike_monitors['Ae'].t_))
+        spike_indices = np.atleast_1d(np.array(spike_monitors['Ae'].i))
+        
+        logger.info(f"Temporal analysis input shapes: times={spike_times.shape}, indices={spike_indices.shape}")
+        logger.info(f"Temporal analysis data types: times={spike_times.dtype}, indices={spike_indices.dtype}")
         
         if len(spike_times) == 0:
             return {
@@ -115,6 +119,10 @@ def analyze_learning_dynamics(connections, previous_weights=None) -> Dict:
     try:
         # Get current weights
         current_weights = np.array(connections['XeAe'].w)
+        logger.info(f"Learning dynamics: weight array shape={current_weights.shape}, dtype={current_weights.dtype}")
+        
+        # Log basic weight statistics for debugging
+        logger.info(f"Weight range: [{np.min(current_weights):.6f}, {np.max(current_weights):.6f}]")
         
         # Basic weight statistics
         weight_stats = {
@@ -187,13 +195,26 @@ def analyze_specialization(connections, neuron_groups, n_classes: int = 10) -> D
         Dict containing specialization statistics
     """
     try:
-        # Get weights
+        # Get weights and reshape if needed
         weights = np.array(connections['XeAe'].w)
-        if len(weights.shape) != 2:
-            raise ValueError(f"Unexpected weight shape: {weights.shape}")
-            
+        logger.info(f"Specialization analysis: initial weight shape={weights.shape}, dtype={weights.dtype}")
+        
         n_input = 784  # MNIST input size
-        n_neurons = weights.shape[1]
+        n_neurons = 400  # Number of excitatory neurons
+        
+        # Reshape weights if they are flattened
+        if len(weights.shape) == 1:
+            try:
+                if weights.size != n_input * n_neurons:
+                    raise ValueError(f"Weight array size {weights.size} doesn't match expected size {n_input * n_neurons}")
+                weights = weights.reshape(n_input, n_neurons)
+                logger.info(f"Reshaped weights to shape={weights.shape}")
+            except Exception as e:
+                logger.error(f"Failed to reshape weights: {str(e)}")
+                raise
+        
+        if weights.shape != (n_input, n_neurons):
+            raise ValueError(f"Unexpected weight shape after reshape: {weights.shape}, expected ({n_input}, {n_neurons})")
         
         # Reshape weights to 28x28 receptive fields
         receptive_fields = []
@@ -267,8 +288,12 @@ def calculate_efficiency_metrics(spike_monitors, accuracy: float = None, n_sampl
         Dict containing efficiency metrics
     """
     try:
+        # Get spike times and ensure it's an array
+        spike_times = np.atleast_1d(np.array(spike_monitors['Ae'].t))
+        logger.info(f"Efficiency metrics: spike times shape={spike_times.shape}, dtype={spike_times.dtype}")
+        
         # Calculate total spikes
-        total_spikes = len(spike_monitors['Ae'].t)
+        total_spikes = len(spike_times)
         
         # Calculate spikes per sample
         spikes_per_sample = total_spikes / n_samples if n_samples else 0

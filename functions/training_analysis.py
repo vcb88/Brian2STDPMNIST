@@ -325,8 +325,16 @@ class TrainingAnalyzer:
             Dict containing organization metrics
         """
         # Convert weights to 2D array if needed
-        weights_2d = weights.reshape(-1, weights.shape[-1]) if len(weights.shape) > 2 else weights
-        
+        if isinstance(weights, np.ndarray):
+            weights_arr = weights
+        else:
+            weights_arr = np.array(weights)
+            
+        if len(weights_arr.shape) == 1:
+            weights_2d = weights_arr.reshape(-1, 1)
+        else:
+            weights_2d = weights_arr
+            
         # Calculate weight sparsity
         sparsity = np.mean(weights_2d < 0.01)
         
@@ -349,34 +357,72 @@ class TrainingAnalyzer:
     def _calculate_weight_clustering(self, weights_2d) -> float:
         """Calculate weight clustering coefficient"""
         # Simple clustering metric based on weight correlation
+        if weights_2d.shape[1] < 2:  # Not enough columns for correlation
+            return 0.0
+            
         correlations = []
         n_samples = min(1000, weights_2d.shape[1])  # Limit computation for large matrices
-        indices = np.random.choice(weights_2d.shape[1], n_samples, replace=False)
-        
-        for i in range(len(indices)):
-            for j in range(i+1, len(indices)):
-                corr = np.corrcoef(weights_2d[:, indices[i]], weights_2d[:, indices[j]])[0,1]
+        try:
+            indices = np.random.choice(weights_2d.shape[1], min(n_samples, weights_2d.shape[1]), replace=False)
+            
+            for i in range(len(indices)):
+                for j in range(i+1, len(indices)):
+                    corr = np.corrcoef(weights_2d[:, indices[i]], weights_2d[:, indices[j]])[0,1]
+                    if not np.isnan(corr):
+                        correlations.append(abs(corr))
+        except (ValueError, IndexError):
+            # If something goes wrong with the sampling, try a simpler approach
+            if weights_2d.shape[1] >= 2:
+                corr = np.corrcoef(weights_2d[:, 0], weights_2d[:, 1])[0,1]
                 if not np.isnan(corr):
                     correlations.append(abs(corr))
                     
-        return np.mean(correlations) if correlations else 0.0
+        return float(np.mean(correlations) if correlations else 0.0)
         
     def _calculate_weight_symmetry(self, weights_2d) -> float:
         """Calculate weight matrix symmetry"""
-        if weights_2d.shape[0] != weights_2d.shape[1]:
-            return 0.0  # Non-square matrices are not symmetric
-            
-        # Calculate symmetry score
-        diff = np.abs(weights_2d - weights_2d.T)
-        symmetry = 1.0 - (np.sum(diff) / (weights_2d.shape[0] * weights_2d.shape[1]))
-        return float(symmetry)
+        try:
+            if weights_2d.shape[0] != weights_2d.shape[1]:
+                # For non-square matrices, calculate correlation between input and output patterns
+                if weights_2d.shape[1] > 1:
+                    input_pattern = np.mean(weights_2d, axis=1)
+                    output_pattern = np.mean(weights_2d, axis=0)
+                    if len(input_pattern) > len(output_pattern):
+                        input_pattern = input_pattern[:len(output_pattern)]
+                    else:
+                        output_pattern = output_pattern[:len(input_pattern)]
+                    corr = np.corrcoef(input_pattern, output_pattern)[0,1]
+                    return float(abs(corr)) if not np.isnan(corr) else 0.0
+                return 0.0
+                
+            # For square matrices, calculate traditional symmetry
+            diff = np.abs(weights_2d - weights_2d.T)
+            symmetry = 1.0 - (np.sum(diff) / (weights_2d.shape[0] * weights_2d.shape[1]))
+            return float(symmetry)
+        except (ValueError, IndexError):
+            return 0.0
         
     def _calculate_topological_organization(self, weights_2d) -> float:
         """Calculate topological organization of weights"""
-        # Use simple gradient-based measure
-        gradients = np.gradient(weights_2d, axis=1)
-        smoothness = 1.0 - np.mean(np.abs(gradients))
-        return float(smoothness)
+        try:
+            # Ensure we have at least 2 points for gradient calculation
+            if weights_2d.shape[1] < 2:
+                return 0.0
+                
+            # Calculate gradients along both dimensions if possible
+            gradients_x = np.gradient(weights_2d, axis=1)
+            if weights_2d.shape[0] > 1:
+                gradients_y = np.gradient(weights_2d, axis=0)
+                # Combine both gradients
+                gradient_magnitude = np.sqrt(gradients_x**2 + gradients_y**2)
+            else:
+                gradient_magnitude = np.abs(gradients_x)
+                
+            # Calculate smoothness metric
+            smoothness = 1.0 - np.mean(gradient_magnitude)
+            return float(min(max(smoothness, 0.0), 1.0))  # Ensure result is between 0 and 1
+        except (ValueError, IndexError):
+            return 0.0
 
     def _evaluate_rf_distinctiveness(self, rfs) -> float:
         """Evaluate distinctiveness of receptive fields (0-1)"""

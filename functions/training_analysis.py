@@ -264,16 +264,90 @@ class TrainingAnalyzer:
     
     def _calculate_specialization_quality(self) -> float:
         """Calculate specialization quality score (0-1)"""
-        # Check neuron selectivity
-        select_score = self._evaluate_neuron_selectivity()
+        try:
+            # Convert weights to numpy array for analysis
+            weights = np.array(self.connections['XeAe'].w)
+            if weights.size == 0:
+                return 0.0
+                
+            # Reshape weights if needed
+            if len(weights.shape) == 1:
+                weights = weights.reshape(-1, 1)
+                
+            # Calculate neuron selectivity (how specialized each neuron is)
+            selectivity_score = self._evaluate_neuron_selectivity()
+            
+            # Calculate population sparsity (how distributed the activity is)
+            sparsity_score = self._calculate_population_sparsity(weights)
+            
+            # Calculate response diversity (how different neurons are from each other)
+            diversity_score = self._calculate_response_diversity(weights)
+            
+            # Combine scores
+            scores = [s for s in [selectivity_score, sparsity_score, diversity_score] if not np.isnan(s)]
+            return float(np.mean(scores) if scores else 0.0)
+            
+        except (ValueError, RuntimeWarning, AttributeError) as e:
+            print(f"Warning: Error in specialization quality calculation: {str(e)}")
+            return 0.0
+            
+    def _calculate_population_sparsity(self, weights) -> float:
+        """Calculate population sparsity score (0-1)
         
-        # Check population diversity
-        div_score = self._evaluate_population_diversity()
+        Higher score indicates better distributed activity across the population
+        """
+        try:
+            if weights.size == 0:
+                return 0.0
+                
+            # Calculate mean activity per neuron
+            neuron_activity = np.mean(np.abs(weights), axis=0)
+            
+            if np.sum(neuron_activity) < 1e-10:
+                return 0.0
+                
+            # Calculate participation ratio
+            normalized_activity = neuron_activity / np.sum(neuron_activity)
+            entropy = -np.sum(normalized_activity * np.log2(normalized_activity + 1e-10))
+            max_entropy = np.log2(len(normalized_activity))
+            
+            return float(entropy / max_entropy if max_entropy > 0 else 0.0)
+            
+        except (ValueError, RuntimeWarning) as e:
+            print(f"Warning: Error in population sparsity calculation: {str(e)}")
+            return 0.0
+            
+    def _calculate_response_diversity(self, weights) -> float:
+        """Calculate response diversity score (0-1)
         
-        # Check category representation
-        cat_score = self._evaluate_category_representation()
-        
-        return (select_score + div_score + cat_score) / 3
+        Higher score indicates more diverse response patterns across neurons
+        """
+        try:
+            if weights.shape[1] < 2:  # Need at least 2 neurons for diversity
+                return 0.0
+                
+            # Calculate pairwise correlations between neurons
+            correlations = []
+            n_neurons = min(1000, weights.shape[1])  # Limit computation for large populations
+            indices = np.random.choice(weights.shape[1], n_neurons, replace=False)
+            
+            for i in range(len(indices)):
+                for j in range(i+1, len(indices)):
+                    corr = np.corrcoef(weights[:, indices[i]], weights[:, indices[j]])[0,1]
+                    if not np.isnan(corr):
+                        correlations.append(abs(corr))
+                        
+            if not correlations:
+                return 0.0
+                
+            # Convert mean correlation to diversity score
+            # Lower correlation means higher diversity
+            mean_correlation = np.mean(correlations)
+            return float(1.0 - mean_correlation)
+            
+        except (ValueError, RuntimeWarning) as e:
+            print(f"Warning: Error in response diversity calculation: {str(e)}")
+            return 0.0
 
     def _evaluate_weight_distribution(self, weights) -> float:
         """Evaluate quality of weight distribution (0-1)"""

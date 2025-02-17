@@ -5,7 +5,7 @@ Module for analyzing network training state independently from recognition mecha
 import numpy as np
 import matplotlib.pyplot as plt
 from scipy import stats
-from typing import Dict, List, Tuple
+from typing import Dict
 
 class TrainingAnalyzer:
     def __init__(self, connections, neuron_groups):
@@ -48,42 +48,36 @@ class TrainingAnalyzer:
         
         # Receptive field properties
         rf_properties = {
-            'distinctiveness': self._calculate_rf_distinctiveness(weights),
-            'overlap': self._calculate_rf_overlap(weights),
-            'structure': self._analyze_rf_structure(weights)
-        }
-        
-        # Feature selectivity
-        selectivity = {
-            'orientation': self._analyze_orientation_selectivity(weights),
-            'position': self._analyze_position_selectivity(weights),
-            'feature_maps': self._extract_feature_maps(weights)
+            'distinctiveness': self._evaluate_rf_distinctiveness(weights),
+            'structure': self._evaluate_rf_structure(weights)
         }
         
         return {
-            'rf_properties': rf_properties,
-            'selectivity': selectivity
+            'rf_properties': rf_properties
         }
+        
+    def get_2d_input_weights(self) -> np.ndarray:
+        """Get input weights reshaped into 2D form (for MNIST 28x28 images)
+        
+        Returns:
+            Array of shape (n_neurons, 28, 28) containing receptive fields
+        """
+        weights = self.connections['XeAe'].w
+        
+        # Assuming MNIST 28x28 input format
+        n_neurons = weights.shape[1]
+        reshaped = []
+        
+        for i in range(n_neurons):
+            neuron_weights = weights[:, i].reshape(28, 28)
+            reshaped.append(neuron_weights)
+            
+        return np.array(reshaped)
     
     def analyze_specialization(self) -> Dict:
         """Analyze neuron specialization"""
-        # Specialization metrics
-        metrics = {
-            'selectivity': self._calculate_neuron_selectivity(),
-            'response_patterns': self._analyze_response_patterns(),
-            'category_preference': self._analyze_category_preference()
-        }
-        
-        # Population analysis
-        population = {
-            'diversity': self._calculate_population_diversity(),
-            'coverage': self._analyze_feature_coverage(),
-            'redundancy': self._calculate_representation_redundancy()
-        }
-        
         return {
-            'metrics': metrics,
-            'population': population
+            'selectivity': self._evaluate_neuron_selectivity()
         }
     
     def get_training_score(self) -> float:
@@ -114,25 +108,101 @@ class TrainingAnalyzer:
         ax2 = fig.add_subplot(232)
         self._plot_receptive_fields(ax2)
         
-        # Specialization
+        # Weight metrics
         ax3 = fig.add_subplot(233)
-        self._plot_specialization(ax3)
+        self._plot_weight_metrics(ax3)
         
-        # Feature maps
+        # Specialization metrics
         ax4 = fig.add_subplot(234)
-        self._plot_feature_maps(ax4)
+        self._plot_specialization_metrics(ax4)
         
-        # Category preference
+        # Weight organization
         ax5 = fig.add_subplot(235)
-        self._plot_category_preference(ax5)
+        self._plot_weight_organization(ax5)
         
         # Training metrics
         ax6 = fig.add_subplot(236)
         self._plot_training_metrics(ax6)
         
+        plt.tight_layout()
         if save_path:
-            plt.savefig(save_path)
+            plt.savefig(save_path, dpi=300, bbox_inches='tight')
         plt.close()
+        
+    def _plot_weight_distribution(self, ax):
+        """Plot weight distribution histogram"""
+        weights = self.connections['XeAe'].w
+        ax.hist(weights.flatten(), bins=50, density=True)
+        ax.set_title('Weight Distribution')
+        ax.set_xlabel('Weight Value')
+        ax.set_ylabel('Density')
+        
+    def _plot_receptive_fields(self, ax):
+        """Plot sample of receptive fields"""
+        weights = self.get_2d_input_weights()
+        n_samples = min(9, len(weights))
+        indices = np.random.choice(len(weights), n_samples, replace=False)
+        
+        for idx, i in enumerate(indices):
+            if idx >= n_samples:
+                break
+            plt.subplot(3, 3, idx + 1)
+            plt.imshow(weights[i], cmap='viridis')
+            plt.axis('off')
+        plt.suptitle('Sample Receptive Fields')
+        
+    def _plot_weight_metrics(self, ax):
+        """Plot weight quality metrics"""
+        metrics = [
+            ('Distribution', self._evaluate_weight_distribution(self.connections['XeAe'].w)),
+            ('Structure', self._evaluate_weight_structure(self.connections['XeAe'].w)),
+            ('Stability', self._evaluate_weight_stability(self.connections['XeAe'].w))
+        ]
+        
+        x = np.arange(len(metrics))
+        values = [m[1] for m in metrics]
+        ax.bar(x, values)
+        ax.set_xticks(x)
+        ax.set_xticklabels([m[0] for m in metrics])
+        ax.set_ylim(0, 1)
+        ax.set_title('Weight Quality Metrics')
+        
+    def _plot_specialization_metrics(self, ax):
+        """Plot neuron specialization metrics"""
+        selectivity = self._evaluate_neuron_selectivity()
+        
+        ax.bar(['Selectivity'], [selectivity])
+        ax.set_ylim(0, 1)
+        ax.set_title('Neuron Specialization')
+        
+    def _plot_weight_organization(self, ax):
+        """Plot weight organization metrics"""
+        org = self._analyze_weight_organization(self.connections['XeAe'].w)
+        metrics = ['Sparsity', 'Clustering', 'Symmetry', 'Topology']
+        values = [org[k.lower()] for k in metrics]
+        
+        x = np.arange(len(metrics))
+        ax.bar(x, values)
+        ax.set_xticks(x)
+        ax.set_xticklabels(metrics)
+        ax.set_ylim(0, 1)
+        ax.set_title('Weight Organization')
+        
+    def _plot_training_metrics(self, ax):
+        """Plot overall training metrics"""
+        metrics = [
+            ('Weight', self._calculate_weight_quality()),
+            ('RF', self._calculate_rf_quality()),
+            ('Spec', self._calculate_specialization_quality())
+        ]
+        
+        x = np.arange(len(metrics))
+        values = [m[1] for m in metrics]
+        ax.bar(x, values)
+        ax.set_xticks(x)
+        ax.set_xticklabels([m[0] for m in metrics])
+        ax.set_ylim(0, 1)
+        ax.set_title('Training Quality Metrics')
     
     # Private helper methods
     def _calculate_weight_quality(self) -> float:
@@ -208,6 +278,26 @@ class TrainingAnalyzer:
         variance_score = self._evaluate_weight_variance(weights)
         
         return (dead_score + saturation_score + variance_score) / 3
+        
+    def _evaluate_weight_variance(self, weights) -> float:
+        """Evaluate weight variance across neurons
+        
+        Returns a score between 0 and 1, where 1 indicates optimal variance
+        """
+        # Convert to 2D if needed
+        weights_2d = weights.reshape(-1, weights.shape[-1]) if len(weights.shape) > 2 else weights
+        
+        # Calculate variance per neuron
+        neuron_variances = np.var(weights_2d, axis=0)
+        
+        # Calculate coefficient of variation (CV) of variances
+        cv = np.std(neuron_variances) / np.mean(neuron_variances) if np.mean(neuron_variances) > 0 else 0
+        
+        # Score based on CV (lower CV is better, but we want some variation)
+        optimal_cv = 0.5  # We expect some variation between neurons
+        score = 1.0 - min(abs(cv - optimal_cv), 1.0)
+        
+        return float(score)
 
     def _evaluate_weight_stability(self, weights) -> float:
         """Evaluate weight stability (0-1)"""
@@ -224,6 +314,69 @@ class TrainingAnalyzer:
         uniformity = 1.0 - np.std(bin_widths) / np.mean(bin_widths)
         
         return (extreme_score + uniformity) / 2
+
+    def _analyze_weight_organization(self, weights) -> Dict:
+        """Analyze weight organization patterns
+        
+        Args:
+            weights: Network weights to analyze
+            
+        Returns:
+            Dict containing organization metrics
+        """
+        # Convert weights to 2D array if needed
+        weights_2d = weights.reshape(-1, weights.shape[-1]) if len(weights.shape) > 2 else weights
+        
+        # Calculate weight sparsity
+        sparsity = np.mean(weights_2d < 0.01)
+        
+        # Calculate weight clustering
+        clustering = self._calculate_weight_clustering(weights_2d)
+        
+        # Calculate weight symmetry
+        symmetry = self._calculate_weight_symmetry(weights_2d)
+        
+        # Calculate topological organization
+        topology = self._calculate_topological_organization(weights_2d)
+        
+        return {
+            'sparsity': float(sparsity),
+            'clustering': float(clustering),
+            'symmetry': float(symmetry),
+            'topology': float(topology)
+        }
+        
+    def _calculate_weight_clustering(self, weights_2d) -> float:
+        """Calculate weight clustering coefficient"""
+        # Simple clustering metric based on weight correlation
+        correlations = []
+        n_samples = min(1000, weights_2d.shape[1])  # Limit computation for large matrices
+        indices = np.random.choice(weights_2d.shape[1], n_samples, replace=False)
+        
+        for i in range(len(indices)):
+            for j in range(i+1, len(indices)):
+                corr = np.corrcoef(weights_2d[:, indices[i]], weights_2d[:, indices[j]])[0,1]
+                if not np.isnan(corr):
+                    correlations.append(abs(corr))
+                    
+        return np.mean(correlations) if correlations else 0.0
+        
+    def _calculate_weight_symmetry(self, weights_2d) -> float:
+        """Calculate weight matrix symmetry"""
+        if weights_2d.shape[0] != weights_2d.shape[1]:
+            return 0.0  # Non-square matrices are not symmetric
+            
+        # Calculate symmetry score
+        diff = np.abs(weights_2d - weights_2d.T)
+        symmetry = 1.0 - (np.sum(diff) / (weights_2d.shape[0] * weights_2d.shape[1]))
+        return float(symmetry)
+        
+    def _calculate_topological_organization(self, weights_2d) -> float:
+        """Calculate topological organization of weights"""
+        # Use simple gradient-based measure
+        gradients = np.gradient(weights_2d, axis=1)
+        smoothness = 1.0 - np.mean(np.abs(gradients))
+        return float(smoothness)
 
     def _evaluate_rf_distinctiveness(self, rfs) -> float:
         """Evaluate distinctiveness of receptive fields (0-1)"""

@@ -355,7 +355,7 @@ delay['ei_input'] = (0*b2.ms,5*b2.ms)
 input_intensity = 2.
 start_input_intensity = input_intensity
 
-tc_pre_ee = 20*b2.ms
+tc_pre_ee = 17*b2.ms  # reduced from 20ms for C1 experiment
 tc_post_1_ee = 20*b2.ms
 tc_post_2_ee = 32*b2.ms  # optimal value determined through B1 series experiments
 nu_ee_pre =  0.00005     # pre-synaptic learning rate (decreased for more conservative learning)

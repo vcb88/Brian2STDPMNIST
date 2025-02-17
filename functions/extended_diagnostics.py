@@ -41,29 +41,59 @@ def calculate_synchronization(neuron_isis: Dict[int, np.ndarray]) -> float:
         float: Synchronization index between 0 and 1
     """
     try:
+        logger.info(f"Calculating synchronization for {len(neuron_isis)} neurons")
+        
         if len(neuron_isis) < 2:
+            logger.info("Not enough neurons for synchronization calculation")
             return 0.0
             
         # Convert ISIs to instantaneous rates
         rates = {}
         for neuron_id, isis in neuron_isis.items():
             if len(isis) > 0:
-                rates[neuron_id] = 1.0 / np.mean(isis)
+                rate = 1.0 / np.mean(isis)
+                if not np.isnan(rate) and not np.isinf(rate):
+                    rates[neuron_id] = rate
+                    logger.debug(f"Neuron {neuron_id}: mean ISI={np.mean(isis):.3f}, rate={rate:.3f}")
             
         if len(rates) < 2:
+            logger.info(f"Not enough neurons with valid rates: {len(rates)}")
             return 0.0
             
         # Calculate correlation coefficient matrix
         rate_values = np.array(list(rates.values()))
-        corr_matrix = np.corrcoef(rate_values)
+        logger.info(f"Computing correlation matrix for {len(rate_values)} rates")
         
+        # Basic statistics for debugging
+        logger.debug(f"Rate statistics: min={np.min(rate_values):.3f}, "
+                    f"max={np.max(rate_values):.3f}, "
+                    f"mean={np.mean(rate_values):.3f}")
+        
+        # Compute correlation matrix
+        corr_matrix = np.corrcoef(rate_values)
+        if corr_matrix.size == 0:
+            logger.warning("Empty correlation matrix")
+            return 0.0
+            
         # Average upper triangle of correlation matrix (excluding diagonal)
         mask = np.triu(np.ones_like(corr_matrix), k=1)
-        sync_index = np.mean(corr_matrix[mask > 0])
+        valid_correlations = corr_matrix[mask > 0]
         
-        return float(sync_index) if not np.isnan(sync_index) else 0.0
+        if len(valid_correlations) == 0:
+            logger.warning("No valid correlations found")
+            return 0.0
+            
+        sync_index = np.mean(valid_correlations)
+        logger.info(f"Calculated synchronization index: {sync_index:.3f}")
+        
+        if np.isnan(sync_index):
+            logger.warning("Synchronization index is NaN")
+            return 0.0
+            
+        return float(sync_index)
     except Exception as e:
         logger.error(f"Error calculating synchronization: {str(e)}")
+        logger.error(f"Error details: {type(e).__name__}")
         return 0.0
 
 def safe_plot_data(data: Any, title: str, ax: Optional[plt.Axes] = None) -> Optional[plt.Figure]:

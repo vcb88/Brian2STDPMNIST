@@ -125,111 +125,173 @@ class TrainingAnalyzer:
     
     def visualize_training_state(self, save_path: str = None):
         """Generate comprehensive visualization of training state"""
-        fig = plt.figure(figsize=(15, 10))
-        
-        # Weight distribution
-        ax1 = fig.add_subplot(231)
-        self._plot_weight_distribution(ax1)
-        
-        # Receptive fields
-        ax2 = fig.add_subplot(232)
-        self._plot_receptive_fields(ax2)
-        
-        # Weight metrics
-        ax3 = fig.add_subplot(233)
-        self._plot_weight_metrics(ax3)
-        
-        # Specialization metrics
-        ax4 = fig.add_subplot(234)
-        self._plot_specialization_metrics(ax4)
-        
-        # Weight organization
-        ax5 = fig.add_subplot(235)
-        self._plot_weight_organization(ax5)
-        
-        # Training metrics
-        ax6 = fig.add_subplot(236)
-        self._plot_training_metrics(ax6)
-        
-        plt.tight_layout()
-        if save_path:
-            plt.savefig(save_path, dpi=300, bbox_inches='tight')
-        plt.close()
+        try:
+            fig = plt.figure(figsize=(15, 10))
+            
+            # Weight distribution
+            ax1 = plt.subplot(231)
+            self._plot_weight_distribution(ax1)
+            
+            # Receptive fields
+            ax2 = plt.subplot(232)
+            self._plot_receptive_fields(ax2)
+            
+            # Weight metrics
+            ax3 = plt.subplot(233)
+            self._plot_weight_metrics(ax3)
+            
+            # Specialization metrics
+            ax4 = plt.subplot(234)
+            self._plot_specialization_metrics(ax4)
+            
+            # Weight organization
+            ax5 = plt.subplot(235)
+            self._plot_weight_organization(ax5)
+            
+            # Training metrics
+            ax6 = plt.subplot(236)
+            self._plot_training_metrics(ax6)
+            
+            plt.tight_layout()
+            if save_path:
+                plt.savefig(save_path, dpi=300, bbox_inches='tight')
+            plt.close()
+            
+        except Exception as e:
+            print(f"Warning: Error in visualization: {str(e)}")
+            plt.close()
         
     def _plot_weight_distribution(self, ax):
         """Plot weight distribution histogram"""
-        weights = self.connections['XeAe'].w
-        ax.hist(weights.flatten(), bins=50, density=True)
-        ax.set_title('Weight Distribution')
-        ax.set_xlabel('Weight Value')
-        ax.set_ylabel('Density')
+        try:
+            weights = np.array(self.connections['XeAe'].w).flatten()
+            if weights.size > 0:
+                ax.hist(weights, bins=50, density=True)
+                ax.set_title('Weight Distribution')
+                ax.set_xlabel('Weight Value')
+                ax.set_ylabel('Density')
+            else:
+                ax.text(0.5, 0.5, 'No weights available', 
+                       horizontalalignment='center',
+                       verticalalignment='center')
+        except Exception as e:
+            print(f"Warning: Error in weight distribution plot: {str(e)}")
+            ax.text(0.5, 0.5, 'Error in visualization', 
+                   horizontalalignment='center',
+                   verticalalignment='center')
         
     def _plot_receptive_fields(self, ax):
         """Plot sample of receptive fields"""
-        weights = self.get_2d_input_weights()
-        n_samples = min(9, len(weights))
-        indices = np.random.choice(len(weights), n_samples, replace=False)
-        
-        for idx, i in enumerate(indices):
-            if idx >= n_samples:
-                break
-            plt.subplot(3, 3, idx + 1)
-            plt.imshow(weights[i], cmap='viridis')
-            plt.axis('off')
-        plt.suptitle('Sample Receptive Fields')
+        try:
+            weights = self.get_2d_input_weights()
+            if len(weights) > 0:
+                n_samples = min(9, len(weights))
+                indices = np.random.choice(len(weights), n_samples, replace=False)
+                
+                for idx, i in enumerate(indices):
+                    if idx >= n_samples:
+                        break
+                    plt.subplot(3, 3, idx + 1)
+                    plt.imshow(weights[i], cmap='viridis')
+                    plt.axis('off')
+                plt.suptitle('Sample Receptive Fields')
+            else:
+                ax.text(0.5, 0.5, 'No receptive fields available', 
+                       horizontalalignment='center',
+                       verticalalignment='center')
+        except Exception as e:
+            print(f"Warning: Error in receptive fields plot: {str(e)}")
+            ax.text(0.5, 0.5, 'Error in visualization', 
+                   horizontalalignment='center',
+                   verticalalignment='center')
         
     def _plot_weight_metrics(self, ax):
         """Plot weight quality metrics"""
-        metrics = [
-            ('Distribution', self._evaluate_weight_distribution(self.connections['XeAe'].w)),
-            ('Structure', self._evaluate_weight_structure(self.connections['XeAe'].w)),
-            ('Stability', self._evaluate_weight_stability(self.connections['XeAe'].w))
-        ]
-        
-        x = np.arange(len(metrics))
-        values = [m[1] for m in metrics]
-        ax.bar(x, values)
-        ax.set_xticks(x)
-        ax.set_xticklabels([m[0] for m in metrics])
-        ax.set_ylim(0, 1)
-        ax.set_title('Weight Quality Metrics')
+        try:
+            weights = np.array(self.connections['XeAe'].w)
+            metrics = [
+                ('Distribution', self._evaluate_weight_distribution(weights)),
+                ('Structure', self._evaluate_weight_structure(weights)),
+                ('Stability', self._evaluate_weight_stability(weights))
+            ]
+            
+            x = np.arange(len(metrics))
+            values = [m[1] for m in metrics]
+            ax.bar(x, values)
+            ax.set_xticks(x)
+            ax.set_xticklabels([m[0] for m in metrics], rotation=45)
+            ax.set_ylim(0, 1)
+            ax.set_title('Weight Quality Metrics')
+        except Exception as e:
+            print(f"Warning: Error in weight metrics plot: {str(e)}")
+            ax.text(0.5, 0.5, 'Error in visualization', 
+                   horizontalalignment='center',
+                   verticalalignment='center')
         
     def _plot_specialization_metrics(self, ax):
         """Plot neuron specialization metrics"""
-        selectivity = self._evaluate_neuron_selectivity()
-        
-        ax.bar(['Selectivity'], [selectivity])
-        ax.set_ylim(0, 1)
-        ax.set_title('Neuron Specialization')
+        try:
+            weights = np.array(self.connections['XeAe'].w)
+            metrics = [
+                ('Selectivity', self._evaluate_neuron_selectivity()),
+                ('Sparsity', self._calculate_population_sparsity(weights)),
+                ('Diversity', self._calculate_response_diversity(weights))
+            ]
+            
+            x = np.arange(len(metrics))
+            values = [m[1] for m in metrics]
+            ax.bar(x, values)
+            ax.set_xticks(x)
+            ax.set_xticklabels([m[0] for m in metrics], rotation=45)
+            ax.set_ylim(0, 1)
+            ax.set_title('Specialization Metrics')
+        except Exception as e:
+            print(f"Warning: Error in specialization metrics plot: {str(e)}")
+            ax.text(0.5, 0.5, 'Error in visualization', 
+                   horizontalalignment='center',
+                   verticalalignment='center')
         
     def _plot_weight_organization(self, ax):
         """Plot weight organization metrics"""
-        org = self._analyze_weight_organization(self.connections['XeAe'].w)
-        metrics = ['Sparsity', 'Clustering', 'Symmetry', 'Topology']
-        values = [org[k.lower()] for k in metrics]
-        
-        x = np.arange(len(metrics))
-        ax.bar(x, values)
-        ax.set_xticks(x)
-        ax.set_xticklabels(metrics)
-        ax.set_ylim(0, 1)
-        ax.set_title('Weight Organization')
+        try:
+            weights = np.array(self.connections['XeAe'].w)
+            org = self._analyze_weight_organization(weights)
+            metrics = ['Sparsity', 'Clustering', 'Symmetry', 'Topology']
+            values = [org[k.lower()] for k in metrics]
+            
+            x = np.arange(len(metrics))
+            ax.bar(x, values)
+            ax.set_xticks(x)
+            ax.set_xticklabels(metrics, rotation=45)
+            ax.set_ylim(0, 1)
+            ax.set_title('Weight Organization')
+        except Exception as e:
+            print(f"Warning: Error in weight organization plot: {str(e)}")
+            ax.text(0.5, 0.5, 'Error in visualization', 
+                   horizontalalignment='center',
+                   verticalalignment='center')
         
     def _plot_training_metrics(self, ax):
         """Plot overall training metrics"""
-        metrics = [
-            ('Weight', self._calculate_weight_quality()),
-            ('RF', self._calculate_rf_quality()),
-            ('Spec', self._calculate_specialization_quality())
-        ]
-        
-        x = np.arange(len(metrics))
-        values = [m[1] for m in metrics]
-        ax.bar(x, values)
-        ax.set_xticks(x)
-        ax.set_xticklabels([m[0] for m in metrics])
-        ax.set_ylim(0, 1)
-        ax.set_title('Training Quality Metrics')
+        try:
+            metrics = [
+                ('Weight', self._calculate_weight_quality()),
+                ('RF', self._calculate_rf_quality()),
+                ('Spec', self._calculate_specialization_quality())
+            ]
+            
+            x = np.arange(len(metrics))
+            values = [m[1] for m in metrics]
+            ax.bar(x, values)
+            ax.set_xticks(x)
+            ax.set_xticklabels([m[0] for m in metrics])
+            ax.set_ylim(0, 1)
+            ax.set_title('Training Quality Metrics')
+        except Exception as e:
+            print(f"Warning: Error in training metrics plot: {str(e)}")
+            ax.text(0.5, 0.5, 'Error in visualization', 
+                   horizontalalignment='center',
+                   verticalalignment='center')
     
     # Private helper methods
     def _calculate_weight_quality(self) -> float:

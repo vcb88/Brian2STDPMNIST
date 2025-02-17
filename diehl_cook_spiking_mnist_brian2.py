@@ -187,30 +187,90 @@ def update_2d_input_weights(im, fig):
     return im
 
 def get_current_performance(performance, current_example_num):
-    current_evaluation = int(current_example_num/update_interval)
+    # Calculate epoch and position within epoch
+    epoch = current_example_num // train_size
+    example_in_epoch = current_example_num % train_size
+    
+    # Calculate evaluations per epoch and current evaluation index
+    evals_per_epoch = int(np.ceil(train_size/update_interval))
+    current_evaluation = epoch * evals_per_epoch + (example_in_epoch // update_interval)
+    
+    # Safety check for array bounds
+    if current_evaluation >= len(performance):
+        logger.warning(f'Performance array index {current_evaluation} out of bounds '
+                      f'(array size: {len(performance)}). Expanding array.')
+        new_performance = np.zeros(current_evaluation + 1)
+        new_performance[:len(performance)] = performance
+        performance = new_performance
+    
+    # Calculate performance for current interval
     start_num = current_example_num - update_interval
     end_num = current_example_num
     difference = outputNumbers[start_num:end_num, 0] - input_numbers[start_num:end_num]
     correct = len(np.where(difference == 0)[0])
-    performance[current_evaluation] = correct / float(update_interval) * 100
+    accuracy = correct / float(update_interval) * 100
+    
+    # Update performance and log
+    performance[current_evaluation] = accuracy
+    logger.info(f'Performance update: example={current_example_num}, '
+                f'epoch={epoch}, example_in_epoch={example_in_epoch}, '
+                f'evaluation_index={current_evaluation}, '
+                f'accuracy={accuracy:.2f}%')
+    
     return performance
 
 def plot_performance(fig_num):
-    num_evaluations = int(num_examples/update_interval)
+    # Calculate number of evaluations per epoch
+    evals_per_epoch = int(np.ceil(train_size/update_interval))
+    # Total number of evaluations for all epochs
+    num_evaluations = evals_per_epoch * args.epochs
+    
+    logger.info(f'Performance array size: {num_evaluations} '
+                f'(evaluations per epoch: {evals_per_epoch}, epochs: {args.epochs})')
+    
     time_steps = range(0, num_evaluations)
     performance = np.zeros(num_evaluations)
+    
     fig = b2.figure(fig_num, figsize = (5, 5))
     fig_num += 1
     ax = fig.add_subplot(111)
-    im2, = ax.plot(time_steps, performance) #my_cmap
+    im2, = ax.plot(time_steps, performance)
+    
+    # Add grid for better epoch visualization
+    ax.grid(True)
+    # Add vertical lines for epoch boundaries
+    for i in range(1, args.epochs):
+        ax.axvline(x=i*evals_per_epoch, color='r', linestyle='--', alpha=0.3)
+    
     b2.ylim(ymax = 100)
     b2.title('Classification performance')
+    b2.xlabel('Evaluation number (vertical lines mark epoch boundaries)')
+    b2.ylabel('Performance (%)')
+    
     fig.canvas.draw()
     return im2, performance, fig_num, fig
 
 def update_performance_plot(im, performance, current_example_num, fig):
     performance = get_current_performance(performance, current_example_num)
+    
+    # Update plot
     im.set_ydata(performance)
+    
+    # Calculate current epoch statistics
+    epoch = current_example_num // train_size
+    evals_per_epoch = int(np.ceil(train_size/update_interval))
+    epoch_start_idx = epoch * evals_per_epoch
+    epoch_end_idx = min((epoch + 1) * evals_per_epoch, len(performance))
+    epoch_performance = performance[epoch_start_idx:epoch_end_idx]
+    
+    # Log epoch statistics
+    if len(epoch_performance) > 0:
+        logger.info(f'Epoch {epoch} statistics:'
+                   f' min={np.min(epoch_performance):.2f}%,'
+                   f' max={np.max(epoch_performance):.2f}%,'
+                   f' mean={np.mean(epoch_performance):.2f}%,'
+                   f' current={performance[epoch_end_idx-1]:.2f}%')
+    
     fig.canvas.draw()
     return im, performance
 

@@ -60,19 +60,46 @@ class TrainingAnalyzer:
         """Get input weights reshaped into 2D form (for MNIST 28x28 images)
         
         Returns:
-            Array of shape (n_neurons, 28, 28) containing receptive fields
+            Array of shape (n_neurons, 28, 28) containing receptive fields,
+            or (1, 28, 28) if reshaping is not possible
         """
-        weights = self.connections['XeAe'].w
-        
-        # Assuming MNIST 28x28 input format
-        n_neurons = weights.shape[1]
-        reshaped = []
-        
-        for i in range(n_neurons):
-            neuron_weights = weights[:, i].reshape(28, 28)
-            reshaped.append(neuron_weights)
-            
-        return np.array(reshaped)
+        try:
+            weights = self.connections['XeAe'].w
+            if not isinstance(weights, np.ndarray):
+                weights = np.array(weights)
+                
+            # Handle different input shapes
+            if len(weights.shape) == 1:
+                # Single vector of weights
+                if weights.size == 784:  # 28*28
+                    return weights.reshape(1, 28, 28)
+                else:
+                    return np.zeros((1, 28, 28))  # Return empty RF
+            elif len(weights.shape) == 2:
+                # Matrix of weights
+                if weights.shape[0] == 784:  # Input dimension is correct
+                    n_neurons = weights.shape[1]
+                    reshaped = []
+                    for i in range(n_neurons):
+                        neuron_weights = weights[:, i].reshape(28, 28)
+                        reshaped.append(neuron_weights)
+                    return np.array(reshaped)
+                elif weights.shape[1] == 784:  # Transposed matrix
+                    n_neurons = weights.shape[0]
+                    reshaped = []
+                    for i in range(n_neurons):
+                        neuron_weights = weights[i, :].reshape(28, 28)
+                        reshaped.append(neuron_weights)
+                    return np.array(reshaped)
+                else:
+                    # Invalid dimensions, return empty RF
+                    return np.zeros((1, 28, 28))
+            else:
+                # More than 2 dimensions or empty
+                return np.zeros((1, 28, 28))
+        except (AttributeError, ValueError, IndexError) as e:
+            print(f"Warning: Could not reshape weights to 2D form: {str(e)}")
+            return np.zeros((1, 28, 28))
     
     def analyze_specialization(self) -> Dict:
         """Analyze neuron specialization"""

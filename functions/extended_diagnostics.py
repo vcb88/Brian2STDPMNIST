@@ -76,8 +76,12 @@ def calculate_synchronization(neuron_isis: Dict[int, np.ndarray]) -> float:
             return 0.0
             
         # Average upper triangle of correlation matrix (excluding diagonal)
-        mask = np.triu(np.ones_like(corr_matrix), k=1)
-        valid_correlations = corr_matrix[mask > 0]
+        n = len(corr_matrix)
+        mask = np.zeros_like(corr_matrix, dtype=bool)
+        for i in range(n):
+            for j in range(i + 1, n):
+                mask[i, j] = True
+        valid_correlations = corr_matrix[mask]
         
         if len(valid_correlations) == 0:
             logger.warning("No valid correlations found")

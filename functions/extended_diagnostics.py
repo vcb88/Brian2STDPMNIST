@@ -3,12 +3,102 @@ Extended diagnostics module for analyzing network training and performance
 """
 
 import numpy as np
-from typing import Dict, List, Tuple, Union, Optional
+from typing import Dict, List, Tuple, Union, Optional, Any
 import logging
 from scipy import stats
 import matplotlib.pyplot as plt
+from collections import defaultdict
 
 logger = logging.getLogger(__name__)
+
+def default_temporal_stats() -> Dict:
+    """Return default temporal statistics structure with zero values"""
+    return {
+        'mean_isi': 0.0,
+        'isi_cv': 0.0,
+        'sync_index': 0.0,
+        'isi_stats': {
+            'min': 0.0,
+            'max': 0.0,
+            'median': 0.0,
+            'n_intervals': 0
+        },
+        'firing_rate_stats': {
+            'mean': 0.0,
+            'std': 0.0,
+            'max': 0.0,
+            'min': 0.0
+        }
+    }
+
+def calculate_synchronization(neuron_isis: Dict[int, np.ndarray]) -> float:
+    """Calculate synchronization index based on ISI cross-correlation
+    
+    Args:
+        neuron_isis: Dictionary mapping neuron IDs to their ISI arrays
+        
+    Returns:
+        float: Synchronization index between 0 and 1
+    """
+    try:
+        if len(neuron_isis) < 2:
+            return 0.0
+            
+        # Convert ISIs to instantaneous rates
+        rates = {}
+        for neuron_id, isis in neuron_isis.items():
+            if len(isis) > 0:
+                rates[neuron_id] = 1.0 / np.mean(isis)
+            
+        if len(rates) < 2:
+            return 0.0
+            
+        # Calculate correlation coefficient matrix
+        rate_values = np.array(list(rates.values()))
+        corr_matrix = np.corrcoef(rate_values)
+        
+        # Average upper triangle of correlation matrix (excluding diagonal)
+        mask = np.triu(np.ones_like(corr_matrix), k=1)
+        sync_index = np.mean(corr_matrix[mask > 0])
+        
+        return float(sync_index) if not np.isnan(sync_index) else 0.0
+    except Exception as e:
+        logger.error(f"Error calculating synchronization: {str(e)}")
+        return 0.0
+
+def safe_plot_data(data: Any, title: str, ax: Optional[plt.Axes] = None) -> Optional[plt.Figure]:
+    """Safely plot data with proper error handling
+    
+    Args:
+        data: Data to plot
+        title: Plot title
+        ax: Optional matplotlib axes to plot on
+        
+    Returns:
+        Optional[plt.Figure]: Figure object if plotting successful, None otherwise
+    """
+    if isinstance(data, (float, np.float64, int, np.int64)):
+        logger.info(f"Skipping plot for scalar value {title}: {data}")
+        return None
+        
+    if not isinstance(data, (list, np.ndarray)) or len(data) == 0:
+        logger.warning(f"Invalid data for plotting {title}")
+        return None
+        
+    try:
+        if ax is None:
+            fig = plt.figure()
+            ax = fig.add_subplot(111)
+        else:
+            fig = ax.figure
+            
+        ax.plot(data)
+        ax.set_title(title)
+        ax.grid(True)
+        return fig
+    except Exception as e:
+        logger.error(f"Error plotting {title}: {str(e)}")
+        return None
 
 def analyze_temporal_patterns(spike_monitors, time_window: float = None) -> Dict:
     """Analyze temporal characteristics of neural activity
@@ -103,13 +193,14 @@ def analyze_temporal_patterns(spike_monitors, time_window: float = None) -> Dict
             mean_isi = 0
             isi_cv = 0
             
-        # Calculate synchronization index
-        if len(firing_rates) > 1:
-            sync_index = np.corrcoef(firing_rates)[0,1]
-            if np.isnan(sync_index):
-                sync_index = 0.0
-        else:
-            sync_index = 0.0
+        # Calculate synchronization index using ISIs
+        neuron_isis = {}
+        for i in unique_indices:
+            neuron_spikes = spike_times[spike_indices == i]
+            if len(neuron_spikes) > 1:
+                neuron_isis[i] = np.diff(neuron_spikes)
+        
+        sync_index = calculate_synchronization(neuron_isis)
             
         # Calculate firing rate statistics
         fr_stats = {
@@ -224,13 +315,20 @@ def analyze_learning_dynamics(connections, previous_weights=None) -> Dict:
 def analyze_specialization(connections, neuron_groups, n_classes: int = 10) -> Dict:
     """Analyze neuron specialization and receptive fields
     
+    Analyzes the specialization of neurons by examining their receptive fields,
+    weight patterns, and response properties.
+    
     Args:
-        connections: Network connections
-        neuron_groups: Neuron groups
+        connections: Network connections dictionary containing weight matrices
+        neuron_groups: Dictionary of neuron groups containing thresholds and states
         n_classes: Number of output classes (default: 10 for MNIST)
         
     Returns:
-        Dict containing specialization statistics
+        Dict containing:
+            - rf_overlap: Measure of receptive field overlap between neurons
+            - selectivity_stats: Statistics about neuronal selectivity
+            - threshold_stats: Statistics about neuronal thresholds
+            - specialization_index: Overall measure of neuronal specialization
     """
     try:
         if not isinstance(connections, dict) or 'XeAe' not in connections:

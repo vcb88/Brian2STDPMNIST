@@ -24,10 +24,27 @@ def analyze_temporal_patterns(spike_monitors, time_window: float = None) -> Dict
         if not isinstance(spike_monitors, dict) or 'Ae' not in spike_monitors:
             raise ValueError("Invalid spike monitors")
         
-        # Convert to numpy arrays, ensuring they are 1D
-        spike_times = np.atleast_1d(np.array(spike_monitors['Ae'].t_))
-        spike_indices = np.atleast_1d(np.array(spike_monitors['Ae'].i))
+        # Try different attribute names for spike times
+        if hasattr(spike_monitors['Ae'], 't'):
+            spike_times = np.atleast_1d(np.array(spike_monitors['Ae'].t))
+            logger.info("Using 't' attribute for spike times")
+        elif hasattr(spike_monitors['Ae'], 't_'):
+            spike_times = np.atleast_1d(np.array(spike_monitors['Ae'].t_))
+            logger.info("Using 't_' attribute for spike times")
+        else:
+            raise ValueError("Cannot find spike times in monitor (no 't' or 't_' attribute)")
+            
+        # Get spike indices
+        if hasattr(spike_monitors['Ae'], 'i'):
+            spike_indices = np.atleast_1d(np.array(spike_monitors['Ae'].i))
+            logger.info("Using 'i' attribute for spike indices")
+        elif hasattr(spike_monitors['Ae'], 'i_'):
+            spike_indices = np.atleast_1d(np.array(spike_monitors['Ae'].i_))
+            logger.info("Using 'i_' attribute for spike indices")
+        else:
+            raise ValueError("Cannot find spike indices in monitor (no 'i' or 'i_' attribute)")
         
+        logger.info(f"Temporal analysis: processing {len(spike_times)} spikes from {len(np.unique(spike_indices))} unique neurons")
         logger.info(f"Temporal analysis input shapes: times={spike_times.shape}, indices={spike_indices.shape}")
         logger.info(f"Temporal analysis data types: times={spike_times.dtype}, indices={spike_indices.dtype}")
         
@@ -117,12 +134,17 @@ def analyze_learning_dynamics(connections, previous_weights=None) -> Dict:
         Dict containing learning dynamics statistics
     """
     try:
+        if not isinstance(connections, dict) or 'XeAe' not in connections:
+            raise ValueError("Invalid connections dictionary or missing XeAe connection")
+            
         # Get current weights
         current_weights = np.array(connections['XeAe'].w)
+        if current_weights.size == 0:
+            raise ValueError("Empty weight matrix")
+            
         logger.info(f"Learning dynamics: weight array shape={current_weights.shape}, dtype={current_weights.dtype}")
-        
-        # Log basic weight statistics for debugging
         logger.info(f"Weight range: [{np.min(current_weights):.6f}, {np.max(current_weights):.6f}]")
+        logger.info(f"Weight distribution: mean={np.mean(current_weights):.6f}, std={np.std(current_weights):.6f}")
         
         # Basic weight statistics
         weight_stats = {
@@ -195,10 +217,19 @@ def analyze_specialization(connections, neuron_groups, n_classes: int = 10) -> D
         Dict containing specialization statistics
     """
     try:
+        if not isinstance(connections, dict) or 'XeAe' not in connections:
+            raise ValueError("Invalid connections dictionary or missing XeAe connection")
+            
+        if not isinstance(neuron_groups, dict) or 'Ae' not in neuron_groups:
+            raise ValueError("Invalid neuron_groups dictionary or missing Ae group")
+            
         # Get weights and reshape if needed
         weights = np.array(connections['XeAe'].w)
         logger.info(f"Specialization analysis: initial weight shape={weights.shape}, dtype={weights.dtype}")
         
+        if weights.size == 0:
+            raise ValueError("Empty weight matrix")
+            
         n_input = 784  # MNIST input size
         n_neurons = 400  # Number of excitatory neurons
         
@@ -215,6 +246,8 @@ def analyze_specialization(connections, neuron_groups, n_classes: int = 10) -> D
         
         if weights.shape != (n_input, n_neurons):
             raise ValueError(f"Unexpected weight shape after reshape: {weights.shape}, expected ({n_input}, {n_neurons})")
+            
+        logger.info(f"Weight matrix properties: min={weights.min():.6f}, max={weights.max():.6f}, mean={weights.mean():.6f}")
         
         # Reshape weights to 28x28 receptive fields
         receptive_fields = []
@@ -288,9 +321,27 @@ def calculate_efficiency_metrics(spike_monitors, accuracy: float = None, n_sampl
         Dict containing efficiency metrics
     """
     try:
-        # Get spike times and ensure it's an array
-        spike_times = np.atleast_1d(np.array(spike_monitors['Ae'].t))
+        if not isinstance(spike_monitors, dict) or 'Ae' not in spike_monitors:
+            raise ValueError("Invalid spike monitors dictionary or missing Ae monitor")
+            
+        # Try different attribute names for spike times
+        if hasattr(spike_monitors['Ae'], 't'):
+            spike_times = np.atleast_1d(np.array(spike_monitors['Ae'].t))
+            logger.info("Using 't' attribute for spike times in efficiency calculation")
+        elif hasattr(spike_monitors['Ae'], 't_'):
+            spike_times = np.atleast_1d(np.array(spike_monitors['Ae'].t_))
+            logger.info("Using 't_' attribute for spike times in efficiency calculation")
+        else:
+            raise ValueError("Cannot find spike times in monitor (no 't' or 't_' attribute)")
+            
         logger.info(f"Efficiency metrics: spike times shape={spike_times.shape}, dtype={spike_times.dtype}")
+        logger.info(f"Processing {len(spike_times)} total spikes")
+        
+        if accuracy is not None:
+            logger.info(f"Network accuracy: {accuracy:.4f}")
+            
+        if n_samples is not None:
+            logger.info(f"Number of processed samples: {n_samples}")
         
         # Calculate total spikes
         total_spikes = len(spike_times)

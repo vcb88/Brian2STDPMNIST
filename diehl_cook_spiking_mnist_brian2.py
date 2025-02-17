@@ -624,6 +624,16 @@ else:
     # Save training results
     save_theta()
     save_connections()
+    
+    # Analyze training state
+    from functions.training_analysis import analyze_training
+    logger.info('Analyzing training state...')
+    training_analysis = analyze_training(
+        connections=connections,
+        neuron_groups=neuron_groups,
+        save_path='./analysis'
+    )
+    logger.info(f'Training score: {training_analysis["training_score"]:.2f}')
 
 # Always run diagnostics
 diagnostic_report(connections, spike_monitors, save_conns, stdp_params, neuron_groups)

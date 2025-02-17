@@ -21,7 +21,10 @@ def analyze_temporal_patterns(spike_monitors, time_window: float = None) -> Dict
     """
     try:
         # Get spike times and indices
-        spike_times = np.array(spike_monitors['Ae'].t/1000.0)  # Convert to seconds
+        if not isinstance(spike_monitors, dict) or 'Ae' not in spike_monitors:
+            raise ValueError("Invalid spike monitors")
+            
+        spike_times = np.array(spike_monitors['Ae'].t_)  # Get times in seconds
         spike_indices = np.array(spike_monitors['Ae'].i)
         
         if len(spike_times) == 0:
@@ -38,16 +41,22 @@ def analyze_temporal_patterns(spike_monitors, time_window: float = None) -> Dict
             }
         
         # Calculate ISIs for each neuron
-        n_neurons = len(np.unique(spike_indices))
+        unique_indices = np.unique(spike_indices)
+        n_neurons = len(unique_indices)
         isis_all = []
         firing_rates = []
         
-        for i in range(n_neurons):
-            neuron_spikes = spike_times[spike_indices == i]
+        # Use actual time window or maximum spike time
+        actual_time_window = float(time_window) if time_window else float(np.max(spike_times))
+        
+        # Calculate ISIs and firing rates per neuron
+        for i in unique_indices:
+            neuron_mask = spike_indices == i
+            neuron_spikes = spike_times[neuron_mask]
             if len(neuron_spikes) > 1:
                 isis = np.diff(neuron_spikes)
                 isis_all.extend(isis)
-                firing_rates.append(len(neuron_spikes) / (time_window if time_window else neuron_spikes[-1]))
+                firing_rates.append(len(neuron_spikes) / actual_time_window)
         
         # Calculate temporal statistics
         if isis_all:
@@ -57,22 +66,27 @@ def analyze_temporal_patterns(spike_monitors, time_window: float = None) -> Dict
             mean_isi = 0
             isi_cv = 0
             
-        # Calculate synchronization index (simple version based on spike count correlation)
+        # Calculate synchronization index
         if len(firing_rates) > 1:
             sync_index = np.corrcoef(firing_rates)[0,1]
+            if np.isnan(sync_index):
+                sync_index = 0.0
         else:
-            sync_index = 0
+            sync_index = 0.0
+            
+        # Calculate firing rate statistics
+        fr_stats = {
+            'mean': float(np.mean(firing_rates)) if firing_rates else 0.0,
+            'std': float(np.std(firing_rates)) if firing_rates else 0.0,
+            'max': float(np.max(firing_rates)) if firing_rates else 0.0,
+            'min': float(np.min(firing_rates)) if firing_rates else 0.0
+        }
             
         return {
             'mean_isi': float(mean_isi),
             'isi_cv': float(isi_cv),
             'sync_index': float(sync_index),
-            'firing_rate_stats': {
-                'mean': float(np.mean(firing_rates)) if firing_rates else 0.0,
-                'std': float(np.std(firing_rates)) if firing_rates else 0.0,
-                'max': float(np.max(firing_rates)) if firing_rates else 0.0,
-                'min': float(np.min(firing_rates)) if firing_rates else 0.0
-            }
+            'firing_rate_stats': fr_stats
         }
     except Exception as e:
         logger.warning(f"Error in temporal pattern analysis: {str(e)}")
@@ -173,17 +187,21 @@ def analyze_specialization(connections, neuron_groups, n_classes: int = 10) -> D
         Dict containing specialization statistics
     """
     try:
-        # Get weights and convert to 2D receptive fields
+        # Get weights
         weights = np.array(connections['XeAe'].w)
-        n_neurons = weights.shape[1] if len(weights.shape) > 1 else 1
+        if len(weights.shape) != 2:
+            raise ValueError(f"Unexpected weight shape: {weights.shape}")
+            
+        n_input = 784  # MNIST input size
+        n_neurons = weights.shape[1]
         
         # Reshape weights to 28x28 receptive fields
         receptive_fields = []
         for i in range(n_neurons):
-            if len(weights.shape) > 1:
+            if weights.shape[0] == n_input:
                 rf = weights[:, i].reshape(28, 28)
             else:
-                rf = weights.reshape(28, 28)
+                rf = weights[i, :].reshape(28, 28)
             receptive_fields.append(rf)
         receptive_fields = np.array(receptive_fields)
         

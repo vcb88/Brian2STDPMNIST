@@ -14,33 +14,49 @@ class TrainingAnalyzer:
         
     def analyze_weights(self) -> Dict:
         """Analyze weight distributions and patterns"""
-        XeAe_weights = self.connections['XeAe'].w
-        
-        # Basic statistics
-        basic_stats = {
-            'mean': float(np.mean(XeAe_weights)),
-            'std': float(np.std(XeAe_weights)),
-            'min': float(np.min(XeAe_weights)),
-            'max': float(np.max(XeAe_weights))
-        }
-        
-        # Distribution analysis
-        hist, bins = np.histogram(XeAe_weights, bins=50, density=True)
-        distribution = {
-            'histogram': hist.tolist(),
-            'bins': bins.tolist(),
-            'skewness': float(stats.skew(XeAe_weights)),
-            'kurtosis': float(stats.kurtosis(XeAe_weights))
-        }
-        
-        # Weight organization
-        organization = self._analyze_weight_organization(XeAe_weights)
-        
-        return {
-            'basic_stats': basic_stats,
-            'distribution': distribution,
-            'organization': organization
-        }
+        try:
+            # Convert VariableView to numpy array
+            XeAe_weights = np.array(self.connections['XeAe'].w)
+            if XeAe_weights.size == 0:
+                return {
+                    'basic_stats': {'mean': 0.0, 'std': 0.0, 'min': 0.0, 'max': 0.0},
+                    'distribution': {'histogram': [], 'bins': [], 'skewness': 0.0, 'kurtosis': 0.0},
+                    'organization': {'sparsity': 0.0, 'clustering': 0.0, 'symmetry': 0.0, 'topology': 0.0}
+                }
+            
+            # Basic statistics
+            basic_stats = {
+                'mean': float(np.mean(XeAe_weights)),
+                'std': float(np.std(XeAe_weights)),
+                'min': float(np.min(XeAe_weights)),
+                'max': float(np.max(XeAe_weights))
+            }
+            
+            # Distribution analysis
+            hist, bins = np.histogram(XeAe_weights, bins=50, density=True)
+            distribution = {
+                'histogram': hist.tolist(),
+                'bins': bins.tolist(),
+                'skewness': float(stats.skew(XeAe_weights.flatten())),
+                'kurtosis': float(stats.kurtosis(XeAe_weights.flatten()))
+            }
+            
+            # Weight organization
+            organization = self._analyze_weight_organization(XeAe_weights)
+            
+            return {
+                'basic_stats': basic_stats,
+                'distribution': distribution,
+                'organization': organization
+            }
+            
+        except Exception as e:
+            print(f"Warning: Error in weight analysis: {str(e)}")
+            return {
+                'basic_stats': {'mean': 0.0, 'std': 0.0, 'min': 0.0, 'max': 0.0},
+                'distribution': {'histogram': [], 'bins': [], 'skewness': 0.0, 'kurtosis': 0.0},
+                'organization': {'sparsity': 0.0, 'clustering': 0.0, 'symmetry': 0.0, 'topology': 0.0}
+            }
     
     def analyze_receptive_fields(self) -> Dict:
         """Analyze receptive fields of neurons"""
@@ -703,28 +719,73 @@ def analyze_training(connections, neuron_groups, save_path=None):
     Returns:
         Dict containing analysis results
     """
-    analyzer = TrainingAnalyzer(connections, neuron_groups)
-    
-    # Get all analyses
-    results = {
-        'weights': analyzer.analyze_weights(),
-        'receptive_fields': analyzer.analyze_receptive_fields(),
-        'specialization': analyzer.analyze_specialization(),
-        'training_score': analyzer.get_training_score()
-    }
-    
-    # Generate visualizations
-    if save_path:
-        # Create timestamp-based filename
-        from datetime import datetime
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        viz_path = f"{save_path}/training_state_{timestamp}.png"
-        analyzer.visualize_training_state(viz_path)
+    try:
+        analyzer = TrainingAnalyzer(connections, neuron_groups)
         
-        # Save numerical results
-        import json
-        results_path = f"{save_path}/training_analysis_{timestamp}.json"
-        with open(results_path, 'w') as f:
-            json.dump(results, f, indent=2)
-    
-    return results
+        # Convert weights to numpy array first
+        if 'XeAe' in connections:
+            weights = np.array(connections['XeAe'].w)
+        else:
+            print("Warning: XeAe connection not found")
+            weights = np.array([])
+            
+        # Get all analyses
+        results = {
+            'weights': analyzer.analyze_weights(),
+            'receptive_fields': analyzer.analyze_receptive_fields(),
+            'specialization': analyzer.analyze_specialization(),
+            'training_score': analyzer.get_training_score()
+        }
+        
+        # Generate visualizations
+        if save_path:
+            try:
+                # Create timestamp-based filename
+                from datetime import datetime
+                timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+                
+                # Ensure directory exists
+                import os
+                os.makedirs(save_path, exist_ok=True)
+                
+                # Save visualization
+                viz_path = f"{save_path}/training_state_{timestamp}.png"
+                analyzer.visualize_training_state(viz_path)
+                
+                # Save numerical results
+                import json
+                results_path = f"{save_path}/training_analysis_{timestamp}.json"
+                
+                # Convert numpy values to Python native types
+                def convert_for_json(obj):
+                    if isinstance(obj, np.ndarray):
+                        return obj.tolist()
+                    elif isinstance(obj, np.integer):
+                        return int(obj)
+                    elif isinstance(obj, np.floating):
+                        return float(obj)
+                    elif isinstance(obj, dict):
+                        return {k: convert_for_json(v) for k, v in obj.items()}
+                    elif isinstance(obj, (list, tuple)):
+                        return [convert_for_json(x) for x in obj]
+                    return obj
+                
+                results_for_json = convert_for_json(results)
+                
+                with open(results_path, 'w') as f:
+                    json.dump(results_for_json, f, indent=2)
+                    
+            except Exception as e:
+                print(f"Warning: Error saving analysis results: {str(e)}")
+        
+        return results
+        
+    except Exception as e:
+        print(f"Error in training analysis: {str(e)}")
+        # Return minimal results
+        return {
+            'weights': {},
+            'receptive_fields': {},
+            'specialization': {},
+            'training_score': 0.0
+        }

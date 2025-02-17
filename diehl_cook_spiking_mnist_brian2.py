@@ -23,6 +23,7 @@ import datetime
 from functions.data import get_labeled_data, get_data_subset
 from functions.quick_analysis import quick_analyze
 from functions.diagnostics import diagnostic_report
+from functions.extended_diagnostics import extended_diagnostic_report
 
 # Parse command line arguments
 parser = argparse.ArgumentParser(description='STDP-based MNIST Classification')
@@ -635,8 +636,28 @@ else:
     )
     logger.info(f'Training score: {training_analysis["training_score"]:.2f}')
 
-# Always run diagnostics
+# Run basic diagnostics
 diagnostic_report(connections, spike_monitors, save_conns, stdp_params, neuron_groups)
+
+# Run extended diagnostics
+logger.info("\nRunning extended diagnostics...")
+extended_stats = extended_diagnostic_report(
+    connections=connections,
+    spike_monitors=spike_monitors,
+    neuron_groups=neuron_groups,
+    accuracy=performance[-1] if 'performance' in locals() else None,
+    n_samples=num_examples,
+    time_window=float(runtime)
+)
+
+# Save extended diagnostics
+if not test_mode:
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+    stats_path = f'analysis/extended_stats_{timestamp}.json'
+    os.makedirs('analysis', exist_ok=True)
+    with open(stats_path, 'w') as f:
+        json.dump(extended_stats, f, indent=2)
+    logger.info(f"Extended statistics saved to: {stats_path}")
 
 
 #------------------------------------------------------------------------------

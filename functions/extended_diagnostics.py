@@ -1,0 +1,334 @@
+"""
+Extended diagnostics module for analyzing network training and performance
+"""
+
+import numpy as np
+from typing import Dict, List, Tuple
+import logging
+from scipy import stats
+
+logger = logging.getLogger(__name__)
+
+def analyze_temporal_patterns(spike_monitors, time_window: float = None) -> Dict:
+    """Analyze temporal characteristics of neural activity
+    
+    Args:
+        spike_monitors: Brian2 spike monitors
+        time_window: Optional time window for analysis (in seconds)
+        
+    Returns:
+        Dict containing temporal statistics
+    """
+    try:
+        # Get spike times and indices
+        spike_times = np.array(spike_monitors['Ae'].t/1000.0)  # Convert to seconds
+        spike_indices = np.array(spike_monitors['Ae'].i)
+        
+        if len(spike_times) == 0:
+            return {
+                'mean_isi': 0.0,
+                'isi_cv': 0.0,
+                'sync_index': 0.0,
+                'firing_rate_stats': {
+                    'mean': 0.0,
+                    'std': 0.0,
+                    'max': 0.0,
+                    'min': 0.0
+                }
+            }
+        
+        # Calculate ISIs for each neuron
+        n_neurons = len(np.unique(spike_indices))
+        isis_all = []
+        firing_rates = []
+        
+        for i in range(n_neurons):
+            neuron_spikes = spike_times[spike_indices == i]
+            if len(neuron_spikes) > 1:
+                isis = np.diff(neuron_spikes)
+                isis_all.extend(isis)
+                firing_rates.append(len(neuron_spikes) / (time_window if time_window else neuron_spikes[-1]))
+        
+        # Calculate temporal statistics
+        if isis_all:
+            mean_isi = np.mean(isis_all)
+            isi_cv = np.std(isis_all) / mean_isi if mean_isi > 0 else 0
+        else:
+            mean_isi = 0
+            isi_cv = 0
+            
+        # Calculate synchronization index (simple version based on spike count correlation)
+        if len(firing_rates) > 1:
+            sync_index = np.corrcoef(firing_rates)[0,1]
+        else:
+            sync_index = 0
+            
+        return {
+            'mean_isi': float(mean_isi),
+            'isi_cv': float(isi_cv),
+            'sync_index': float(sync_index),
+            'firing_rate_stats': {
+                'mean': float(np.mean(firing_rates)) if firing_rates else 0.0,
+                'std': float(np.std(firing_rates)) if firing_rates else 0.0,
+                'max': float(np.max(firing_rates)) if firing_rates else 0.0,
+                'min': float(np.min(firing_rates)) if firing_rates else 0.0
+            }
+        }
+    except Exception as e:
+        logger.warning(f"Error in temporal pattern analysis: {str(e)}")
+        return {
+            'mean_isi': 0.0,
+            'isi_cv': 0.0,
+            'sync_index': 0.0,
+            'firing_rate_stats': {
+                'mean': 0.0,
+                'std': 0.0,
+                'max': 0.0,
+                'min': 0.0
+            }
+        }
+
+def analyze_learning_dynamics(connections, previous_weights=None) -> Dict:
+    """Analyze learning dynamics and weight changes
+    
+    Args:
+        connections: Current network connections
+        previous_weights: Optional previous weights for change analysis
+        
+    Returns:
+        Dict containing learning dynamics statistics
+    """
+    try:
+        # Get current weights
+        current_weights = np.array(connections['XeAe'].w)
+        
+        # Basic weight statistics
+        weight_stats = {
+            'mean': float(np.mean(current_weights)),
+            'std': float(np.std(current_weights)),
+            'min': float(np.min(current_weights)),
+            'max': float(np.max(current_weights))
+        }
+        
+        # Weight distribution analysis
+        hist, bins = np.histogram(current_weights, bins=50, density=True)
+        weight_distribution = {
+            'histogram': hist.tolist(),
+            'bins': bins.tolist(),
+            'skewness': float(stats.skew(current_weights)),
+            'kurtosis': float(stats.kurtosis(current_weights))
+        }
+        
+        # Weight change analysis if previous weights available
+        if previous_weights is not None:
+            weight_changes = current_weights - previous_weights
+            change_stats = {
+                'mean_change': float(np.mean(np.abs(weight_changes))),
+                'max_change': float(np.max(np.abs(weight_changes))),
+                'significant_changes': float(np.mean(np.abs(weight_changes) > 0.01) * 100)
+            }
+        else:
+            change_stats = {
+                'mean_change': 0.0,
+                'max_change': 0.0,
+                'significant_changes': 0.0
+            }
+            
+        return {
+            'weight_stats': weight_stats,
+            'weight_distribution': weight_distribution,
+            'change_stats': change_stats
+        }
+    except Exception as e:
+        logger.warning(f"Error in learning dynamics analysis: {str(e)}")
+        return {
+            'weight_stats': {
+                'mean': 0.0,
+                'std': 0.0,
+                'min': 0.0,
+                'max': 0.0
+            },
+            'weight_distribution': {
+                'histogram': [],
+                'bins': [],
+                'skewness': 0.0,
+                'kurtosis': 0.0
+            },
+            'change_stats': {
+                'mean_change': 0.0,
+                'max_change': 0.0,
+                'significant_changes': 0.0
+            }
+        }
+
+def analyze_specialization(connections, neuron_groups, n_classes: int = 10) -> Dict:
+    """Analyze neuron specialization and receptive fields
+    
+    Args:
+        connections: Network connections
+        neuron_groups: Neuron groups
+        n_classes: Number of output classes (default: 10 for MNIST)
+        
+    Returns:
+        Dict containing specialization statistics
+    """
+    try:
+        # Get weights and convert to 2D receptive fields
+        weights = np.array(connections['XeAe'].w)
+        n_neurons = weights.shape[1] if len(weights.shape) > 1 else 1
+        
+        # Reshape weights to 28x28 receptive fields
+        receptive_fields = []
+        for i in range(n_neurons):
+            if len(weights.shape) > 1:
+                rf = weights[:, i].reshape(28, 28)
+            else:
+                rf = weights.reshape(28, 28)
+            receptive_fields.append(rf)
+        receptive_fields = np.array(receptive_fields)
+        
+        # Calculate RF overlap
+        rf_correlations = []
+        for i in range(n_neurons):
+            for j in range(i+1, n_neurons):
+                corr = np.corrcoef(receptive_fields[i].flat, receptive_fields[j].flat)[0,1]
+                if not np.isnan(corr):
+                    rf_correlations.append(abs(corr))
+        
+        rf_overlap = np.mean(rf_correlations) if rf_correlations else 0
+        
+        # Calculate selectivity (using L2 norm of weights as simple proxy)
+        selectivity = np.linalg.norm(weights, axis=0) if len(weights.shape) > 1 else [np.linalg.norm(weights)]
+        selectivity = selectivity / np.max(selectivity)  # Normalize
+        
+        # Get neuron thresholds
+        thresholds = np.array(neuron_groups['Ae'].theta_)
+        
+        return {
+            'rf_overlap': float(rf_overlap),
+            'selectivity_stats': {
+                'mean': float(np.mean(selectivity)),
+                'std': float(np.std(selectivity)),
+                'max': float(np.max(selectivity)),
+                'min': float(np.min(selectivity))
+            },
+            'threshold_stats': {
+                'mean': float(np.mean(thresholds)),
+                'std': float(np.std(thresholds)),
+                'max': float(np.max(thresholds)),
+                'min': float(np.min(thresholds))
+            }
+        }
+    except Exception as e:
+        logger.warning(f"Error in specialization analysis: {str(e)}")
+        return {
+            'rf_overlap': 0.0,
+            'selectivity_stats': {
+                'mean': 0.0,
+                'std': 0.0,
+                'max': 0.0,
+                'min': 0.0
+            },
+            'threshold_stats': {
+                'mean': 0.0,
+                'std': 0.0,
+                'max': 0.0,
+                'min': 0.0
+            }
+        }
+
+def calculate_efficiency_metrics(spike_monitors, accuracy: float = None, n_samples: int = None) -> Dict:
+    """Calculate network efficiency metrics
+    
+    Args:
+        spike_monitors: Brian2 spike monitors
+        accuracy: Optional classification accuracy
+        n_samples: Number of samples processed
+        
+    Returns:
+        Dict containing efficiency metrics
+    """
+    try:
+        # Calculate total spikes
+        total_spikes = len(spike_monitors['Ae'].t)
+        
+        # Calculate spikes per sample
+        spikes_per_sample = total_spikes / n_samples if n_samples else 0
+        
+        # Calculate efficiency (accuracy per spike)
+        if accuracy is not None and total_spikes > 0:
+            spike_efficiency = accuracy / total_spikes
+        else:
+            spike_efficiency = 0
+            
+        return {
+            'total_spikes': int(total_spikes),
+            'spikes_per_sample': float(spikes_per_sample),
+            'spike_efficiency': float(spike_efficiency)
+        }
+    except Exception as e:
+        logger.warning(f"Error in efficiency metrics calculation: {str(e)}")
+        return {
+            'total_spikes': 0,
+            'spikes_per_sample': 0.0,
+            'spike_efficiency': 0.0
+        }
+
+def extended_diagnostic_report(
+    connections, 
+    spike_monitors, 
+    neuron_groups, 
+    previous_weights=None,
+    accuracy=None,
+    n_samples=None,
+    time_window=None
+) -> Dict:
+    """Generate extended diagnostic report
+    
+    Args:
+        connections: Network connections
+        spike_monitors: Brian2 spike monitors
+        neuron_groups: Neuron groups
+        previous_weights: Optional previous weights for change analysis
+        accuracy: Optional classification accuracy
+        n_samples: Number of samples processed
+        time_window: Optional time window for analysis
+        
+    Returns:
+        Dict containing all diagnostic metrics
+    """
+    temporal_stats = analyze_temporal_patterns(spike_monitors, time_window)
+    learning_stats = analyze_learning_dynamics(connections, previous_weights)
+    specialization_stats = analyze_specialization(connections, neuron_groups)
+    efficiency_stats = calculate_efficiency_metrics(spike_monitors, accuracy, n_samples)
+    
+    # Log detailed report
+    logger.info("\n=== Extended Diagnostic Report ===\n")
+    
+    logger.info("Network Activity Efficiency:")
+    logger.info(f"- Total spikes: {efficiency_stats['total_spikes']}")
+    logger.info(f"- Spikes per sample: {efficiency_stats['spikes_per_sample']:.2f}")
+    logger.info(f"- Energy efficiency: {efficiency_stats['spike_efficiency']:.4f}")
+    
+    logger.info("\nTemporal Characteristics:")
+    logger.info(f"- Mean ISI: {temporal_stats['mean_isi']:.2f} s")
+    logger.info(f"- ISI CV: {temporal_stats['isi_cv']:.2f}")
+    logger.info(f"- Network synchronization: {temporal_stats['sync_index']:.2f}")
+    logger.info(f"- Mean firing rate: {temporal_stats['firing_rate_stats']['mean']:.2f} Hz")
+    
+    logger.info("\nLearning Dynamics:")
+    logger.info(f"- Mean weight: {learning_stats['weight_stats']['mean']:.4f}")
+    logger.info(f"- Weight std: {learning_stats['weight_stats']['std']:.4f}")
+    logger.info(f"- Weight changes: {learning_stats['change_stats']['significant_changes']:.1f}%")
+    
+    logger.info("\nNeuron Specialization:")
+    logger.info(f"- RF overlap: {specialization_stats['rf_overlap']:.2f}")
+    logger.info(f"- Mean selectivity: {specialization_stats['selectivity_stats']['mean']:.2f}")
+    logger.info(f"- Mean threshold: {specialization_stats['threshold_stats']['mean']:.4f}")
+    
+    return {
+        'temporal_stats': temporal_stats,
+        'learning_stats': learning_stats,
+        'specialization_stats': specialization_stats,
+        'efficiency_stats': efficiency_stats
+    }

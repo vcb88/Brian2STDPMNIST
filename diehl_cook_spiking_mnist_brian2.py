@@ -357,7 +357,7 @@ start_input_intensity = input_intensity
 
 tc_pre_ee = 20*b2.ms
 tc_post_1_ee = 20*b2.ms
-tc_post_2_ee = 35*b2.ms  # decrease from baseline 40ms for B1.2 experiment
+tc_post_2_ee = 32*b2.ms  # further decrease from 35ms for B1.3 experiment
 nu_ee_pre =  0.00005     # pre-synaptic learning rate (decreased for more conservative learning)
 nu_ee_post = 0.01       # post-synaptic learning rate (1:200 ratio with pre-synaptic)
 wmax_ee = 1.0

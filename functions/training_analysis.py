@@ -480,19 +480,38 @@ class TrainingAnalyzer:
 
     def _evaluate_neuron_selectivity(self) -> float:
         """Evaluate selectivity of neurons (0-1)"""
-        # This would ideally use actual response data
-        # For now, use weight patterns as proxy
-        weights = self.connections['XeAe'].w
-        
-        selectivity_scores = []
-        for neuron_weights in weights.T:  # per neuron
-            # Calculate weight concentration
-            sorted_weights = np.sort(neuron_weights)[::-1]
-            top_20_percent = sorted_weights[:len(sorted_weights)//5]
-            selectivity = np.sum(top_20_percent) / np.sum(sorted_weights)
-            selectivity_scores.append(selectivity)
-        
-        return np.mean(selectivity_scores)
+        try:
+            # Convert weights to numpy array
+            weights = np.array(self.connections['XeAe'].w)
+            if len(weights.shape) < 2:
+                # If weights are 1D, reshape to 2D
+                if weights.size == 0:
+                    return 0.0
+                weights = weights.reshape(-1, 1)
+            
+            selectivity_scores = []
+            # Iterate over neurons (columns)
+            for i in range(weights.shape[1] if len(weights.shape) > 1 else 1):
+                # Get weights for current neuron
+                neuron_weights = weights[:, i] if len(weights.shape) > 1 else weights
+                
+                # Calculate weight concentration
+                if len(neuron_weights) == 0 or np.sum(neuron_weights) == 0:
+                    continue
+                    
+                sorted_weights = np.sort(neuron_weights)[::-1]
+                top_size = max(1, len(sorted_weights)//5)  # At least 1 weight
+                top_weights = sorted_weights[:top_size]
+                
+                total_weight = np.sum(sorted_weights)
+                if total_weight > 0:  # Avoid division by zero
+                    selectivity = np.sum(top_weights) / total_weight
+                    selectivity_scores.append(selectivity)
+            
+            return float(np.mean(selectivity_scores) if selectivity_scores else 0.0)
+        except (AttributeError, ValueError, IndexError) as e:
+            print(f"Warning: Could not evaluate neuron selectivity: {str(e)}")
+            return 0.0
 
     @staticmethod
     def _evaluate_spatial_organization(rf) -> float:
@@ -508,15 +527,33 @@ class TrainingAnalyzer:
     @staticmethod
     def _evaluate_feature_representation(rf) -> float:
         """Evaluate quality of feature representation (0-1)"""
-        # Calculate local contrast
-        local_contrast = np.std(rf) / np.mean(rf) if np.mean(rf) > 0 else 0
-        
-        # Calculate spatial frequency content
-        freq_content = np.fft.fft2(rf)
-        freq_magnitude = np.abs(freq_content)
-        freq_score = np.sum(freq_magnitude[1:]) / np.sum(freq_magnitude)
-        
-        return (min(local_contrast, 1.0) + min(freq_score, 1.0)) / 2
+        try:
+            if rf.size == 0:
+                return 0.0
+                
+            # Calculate local contrast
+            rf_mean = np.mean(rf)
+            rf_std = np.std(rf)
+            local_contrast = rf_std / rf_mean if abs(rf_mean) > 1e-10 else 0.0
+            
+            # Calculate spatial frequency content
+            freq_content = np.fft.fft2(rf)
+            freq_magnitude = np.abs(freq_content)
+            freq_sum = np.sum(freq_magnitude)
+            
+            if freq_sum > 1e-10:  # Avoid division by very small numbers
+                freq_score = np.sum(freq_magnitude[1:]) / freq_sum
+            else:
+                freq_score = 0.0
+            
+            # Normalize scores to [0, 1]
+            contrast_score = min(local_contrast, 1.0) if not np.isnan(local_contrast) else 0.0
+            freq_score = min(freq_score, 1.0) if not np.isnan(freq_score) else 0.0
+            
+            return (contrast_score + freq_score) / 2
+        except (ValueError, RuntimeWarning) as e:
+            print(f"Warning: Error in feature representation evaluation: {str(e)}")
+            return 0.0
 
 def analyze_training(connections, neuron_groups, save_path=None):
     """

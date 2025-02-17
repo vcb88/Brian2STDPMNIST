@@ -3,9 +3,10 @@ Extended diagnostics module for analyzing network training and performance
 """
 
 import numpy as np
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, Union, Optional
 import logging
 from scipy import stats
+import matplotlib.pyplot as plt
 
 logger = logging.getLogger(__name__)
 
@@ -61,7 +62,7 @@ def analyze_temporal_patterns(spike_monitors, time_window: float = None) -> Dict
                 }
             }
         
-        # Calculate ISIs for each neuron
+        # Calculate ISIs and firing rates for each neuron
         unique_indices = np.unique(spike_indices)
         n_neurons = len(unique_indices)
         isis_all = []
@@ -69,15 +70,30 @@ def analyze_temporal_patterns(spike_monitors, time_window: float = None) -> Dict
         
         # Use actual time window or maximum spike time
         actual_time_window = float(time_window) if time_window else float(np.max(spike_times))
+        logger.info(f"Using time window of {actual_time_window:.2f} seconds for temporal analysis")
         
         # Calculate ISIs and firing rates per neuron
+        total_spikes = 0
+        active_neurons = 0
+        
         for i in unique_indices:
-            neuron_mask = spike_indices == i
-            neuron_spikes = spike_times[neuron_mask]
-            if len(neuron_spikes) > 1:
-                isis = np.diff(neuron_spikes)
-                isis_all.extend(isis)
-                firing_rates.append(len(neuron_spikes) / actual_time_window)
+            neuron_spikes = spike_times[spike_indices == i]
+            n_spikes = len(neuron_spikes)
+            total_spikes += n_spikes
+            
+            if n_spikes > 0:
+                active_neurons += 1
+                firing_rates.append(n_spikes / actual_time_window)
+                
+                if n_spikes > 1:
+                    # Calculate ISIs only for neurons with multiple spikes
+                    isis = np.diff(neuron_spikes)
+                    if len(isis) > 0:  # Extra check to be safe
+                        isis_all.extend(isis.tolist())  # Convert to list for safe extension
+                        
+        logger.info(f"Temporal analysis: {active_neurons} active neurons, {total_spikes} total spikes")
+        if isis_all:
+            logger.info(f"ISI statistics: {len(isis_all)} intervals, range: [{min(isis_all):.3f}, {max(isis_all):.3f}]")
         
         # Calculate temporal statistics
         if isis_all:
@@ -367,6 +383,30 @@ def calculate_efficiency_metrics(spike_monitors, accuracy: float = None, n_sampl
             'spikes_per_sample': 0.0,
             'spike_efficiency': 0.0
         }
+
+def plot_metrics(data, title: str, ax=None):
+    """Safely plot metrics data
+    
+    Args:
+        data: Data to plot
+        title: Plot title
+        ax: Optional matplotlib axis
+    """
+    if isinstance(data, (float, np.float64, int, np.int64)):
+        logger.warning(f"Skipping plot for scalar value: {data} (type: {type(data)})")
+        return
+        
+    if not isinstance(data, (list, np.ndarray)) or len(data) == 0:
+        logger.warning(f"Invalid data for plotting: {type(data)}, length: {len(data) if hasattr(data, '__len__') else 'N/A'}")
+        return
+        
+    try:
+        if ax is None:
+            ax = plt.gca()
+        ax.plot(data)
+        ax.set_title(title)
+    except Exception as e:
+        logger.error(f"Error plotting {title}: {str(e)}")
 
 def extended_diagnostic_report(
     connections, 

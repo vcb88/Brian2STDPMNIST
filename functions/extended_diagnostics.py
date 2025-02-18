@@ -48,12 +48,14 @@ def calculate_synchronization(neuron_isis: Dict[int, np.ndarray]) -> float:
             return 0.0
             
         # Convert ISIs to instantaneous rates
-        rates = {}
+        rates = []
+        neuron_ids = []
         for neuron_id, isis in neuron_isis.items():
             if len(isis) > 0:
                 rate = 1.0 / np.mean(isis)
                 if not np.isnan(rate) and not np.isinf(rate):
-                    rates[neuron_id] = rate
+                    rates.append(float(rate))  # Convert to Python float
+                    neuron_ids.append(neuron_id)
                     logger.debug(f"Neuron {neuron_id}: mean ISI={np.mean(isis):.3f}, rate={rate:.3f}")
             
         if len(rates) < 2:
@@ -61,39 +63,91 @@ def calculate_synchronization(neuron_isis: Dict[int, np.ndarray]) -> float:
             return 0.0
             
         # Calculate correlation coefficient matrix
-        rate_values = np.array(list(rates.values()))
-        logger.info(f"Computing correlation matrix for {len(rate_values)} rates")
+        rate_values = np.array(rates, dtype=np.float64)
+        if rate_values.size < 2:
+            logger.warning("Not enough rate values for correlation")
+            return 0.0
+            
+        logger.info(f"Computing correlation matrix for {rate_values.size} rates")
         
         # Basic statistics for debugging
         logger.debug(f"Rate statistics: min={np.min(rate_values):.3f}, "
                     f"max={np.max(rate_values):.3f}, "
                     f"mean={np.mean(rate_values):.3f}")
         
-        # Compute correlation matrix
-        corr_matrix = np.corrcoef(rate_values)
-        if corr_matrix.size == 0:
-            logger.warning("Empty correlation matrix")
+        # Reshape for correlation calculation
+        rate_values = rate_values.reshape(-1, 1)
+        if rate_values.shape[0] < 2:
+            logger.warning("Not enough samples for correlation")
             return 0.0
             
-        # Average upper triangle of correlation matrix (excluding diagonal)
-        n = len(corr_matrix)
-        mask = np.zeros_like(corr_matrix, dtype=bool)
-        for i in range(n):
-            for j in range(i + 1, n):
-                mask[i, j] = True
-        valid_correlations = corr_matrix[mask]
-        
-        if len(valid_correlations) == 0:
-            logger.warning("No valid correlations found")
-            return 0.0
+        try:
+            # Compute correlation matrix
+            corr_matrix = np.corrcoef(rate_values.T)
+            if not isinstance(corr_matrix, np.ndarray):
+                logger.warning(f"Unexpected correlation matrix type: {type(corr_matrix)}")
+                return 0.0
+                
+            if corr_matrix.size <= 1:
+                logger.warning("Correlation matrix too small")
+                return 0.0
+                
+            # Get upper triangle correlations (excluding diagonal)
+            n = corr_matrix.shape[0]
+            correlations = []
+            for i in range(n):
+                for j in range(i + 1, n):
+                    corr = corr_matrix[i, j]
+                    if not np.isnan(corr) and not np.isinf(corr):
+                        correlations.append(corr)
+                        
+            if not correlations:
+                logger.warning("No valid correlations found")
+                return 0.0
+                
+            sync_index = float(np.mean(correlations))
+            logger.info(f"Calculated synchronization index: {sync_index:.3f}")
+            return sync_index if not np.isnan(sync_index) else 0.0
             
-        sync_index = np.mean(valid_correlations)
-        logger.info(f"Calculated synchronization index: {sync_index:.3f}")
-        
-        if np.isnan(sync_index):
-            logger.warning("Synchronization index is NaN")
+        except Exception as e:
+            logger.error(f"Error in correlation calculation: {str(e)}")
             return 0.0
+
+        try:
+            # Compute correlation matrix
+            corr_matrix = np.corrcoef(rate_values.T)
+            if not isinstance(corr_matrix, np.ndarray):
+                logger.warning(f"Unexpected correlation matrix type: {type(corr_matrix)}")
+                return 0.0
+                
+            if corr_matrix.size <= 1:
+                logger.warning("Correlation matrix too small")
+                return 0.0
+                
+            # Get upper triangle correlations (excluding diagonal)
+            n = corr_matrix.shape[0]
+            correlations = []
+            for i in range(n):
+                for j in range(i + 1, n):
+                    corr = corr_matrix[i, j]
+                    if not np.isnan(corr) and not np.isinf(corr):
+                        correlations.append(corr)
+                        
+            if not correlations:
+                logger.warning("No valid correlations found")
+                return 0.0
+                
+            sync_index = float(np.mean(correlations))
+            logger.info(f"Calculated synchronization index: {sync_index:.3f}")
+            return sync_index if not np.isnan(sync_index) else 0.0
             
+        except Exception as e:
+            logger.error(f"Error in correlation calculation: {str(e)}")
+            return 0.0
+
+
+
+
         return float(sync_index)
     except Exception as e:
         logger.error(f"Error calculating synchronization: {str(e)}")
